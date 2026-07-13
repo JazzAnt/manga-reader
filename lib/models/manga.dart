@@ -4,9 +4,7 @@ class Manga {
   final String _title;
   final List<MangaPage> _pages;
 
-  Manga({required String title, required List<MangaPage> pages})
-    : _title = title,
-      _pages = pages;
+  Manga(this._title, this._pages);
 
   String get title => _title;
   List<MangaPage> get pages => _pages;

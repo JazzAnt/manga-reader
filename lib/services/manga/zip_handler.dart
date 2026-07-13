@@ -29,7 +29,7 @@ class ZipHandler {
       final String? mime = lookupMimeType(name, headerBytes: bytes);
       if(mime == null || !mime.startsWith('image/')) continue;
 
-      final page = MangaPage(index: pageIndex, filename: name, imageBytes: bytes);
+      final page = MangaPage(pageIndex, name, bytes);
       pages.add(page);
 
       // Index incremented here so that it increments only if a page is added.
@@ -37,7 +37,7 @@ class ZipHandler {
     }
 
     // TODO: get a way to implement filename
-    return Manga(title: "PLACEHOLDER", pages: pages);
+    return Manga("PLACEHOLDER", pages);
   }
 
   /// Reads a zip file and prints the contents.
