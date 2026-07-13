@@ -4,15 +4,18 @@ import 'package:mime/mime.dart';
 
 import '../../models/manga.dart';
 import '../../models/manga_page.dart';
+import '../../models/zip.dart';
 
-/// Service class to handle zip files. Most functions here require the bytes
-/// of the zip file, which can be obtained from `FileReader.selectZip()`
+/// Service class to handle zip files. Most functions here require a
+/// [Zip] object that can be obtained from `FileReader.selectZip()`.
 class ZipHandler {
-  /// Reads a zip file and converts it to a [Manga] object.
-  /// This function reads and stores all image files found in the zip file.
-  /// Any non-image file is ignored.
-  Manga zipToManga(Uint8List zipBytes){
-    Archive archive = ZipDecoder().decodeBytes(zipBytes);
+  /// Reads a [Zip] object and converts it to a [Manga] object.
+  /// The [Manga] object contains all image files in the [Zip] object,
+  /// any non-image file is ignored.
+  ///
+  /// Returns a [Manga] object.
+  Manga zipToManga(Zip zipFile){
+    Archive archive = ZipDecoder().decodeBytes(zipFile.bytes);
 
     final List<MangaPage> pages = <MangaPage>[];
     int pageIndex = 0;
@@ -21,6 +24,7 @@ class ZipHandler {
       // If file isn't a file (is a directory), skip.
       if (!file.isFile) continue;
 
+      // If file is empty, skip.
       final String name = file.name;
       final Uint8List? bytes = file.readBytes();
       if (bytes == null) continue;
@@ -29,21 +33,20 @@ class ZipHandler {
       final String? mime = lookupMimeType(name, headerBytes: bytes);
       if(mime == null || !mime.startsWith('image/')) continue;
 
-      final page = MangaPage(pageIndex, name, bytes);
+      final MangaPage page = MangaPage(pageIndex, name, bytes);
       pages.add(page);
 
       // Index incremented here so that it increments only if a page is added.
       pageIndex++;
     }
 
-    // TODO: get a way to implement filename
-    return Manga("PLACEHOLDER", pages);
+    return Manga(zipFile.filename, pages);
   }
 
   /// Reads a zip file and prints the contents.
   /// Currently mostly for testing.
-  void readZip(Uint8List zipBytes){
-    Archive archive = ZipDecoder().decodeBytes(zipBytes);
+  void readZip(Zip zipFile){
+    Archive archive = ZipDecoder().decodeBytes(zipFile.bytes);
     for (ArchiveFile file in archive){
       if(file.isFile){
 print("(ZIPREADER)" + file.name);
