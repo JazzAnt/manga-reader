@@ -1,9 +1,9 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
+import 'package:manga_reader/screens/selector_screen.dart';
 import './services/manga/file_reader.dart';
 import './services/manga/zip_handler.dart';
 import './models/zip.dart';
+import './screens/reader_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,21 +17,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
-      home: Scaffold(
-        body: Center(
-          child: ElevatedButton(
-              onPressed: () async {
-                Zip? file = await FileReader().selectZip();
-                if (file == null){
-                  return;
-                }
-                final manga = ZipHandler().zipToManga(file);
-print(manga.title);
-print(manga.pages.length);
-              },
-              child: const Text("TEST")),
-        ),
-      ),
+      initialRoute: "/",
+      routes: {
+        "/": (context) => const SelectorScreen(),
+        "/reader": (context) => const ReaderScreen()
+      },
     );
   }
 }
