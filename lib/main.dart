@@ -4,6 +4,7 @@ import './services/manga/file_reader.dart';
 import './services/manga/zip_handler.dart';
 import './models/zip.dart';
 import './screens/reader_screen.dart';
+import 'models/manga.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,7 +21,17 @@ class MyApp extends StatelessWidget {
       initialRoute: "/",
       routes: {
         "/": (context) => const SelectorScreen(),
-        "/reader": (context) => const ReaderScreen()
+      },
+      onGenerateRoute: (settings){
+        switch (settings.name){
+          case "/reader":
+            final manga = settings.arguments as Manga;
+
+            return MaterialPageRoute(
+                builder: (_) => ReaderScreen(manga: manga)
+            );
+        }
+        return null;
       },
     );
   }
