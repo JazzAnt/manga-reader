@@ -25,6 +25,12 @@ class _SelectorScreenState extends State<SelectorScreen> {
                 return;
               }
               final manga = ZipHandler().zipToManga(file);
+
+              // This checks if this Widget still exists after the await from
+              // FileReader, making sure Navigator doesn't execute if the
+              // Widget have been dismounted (e.g. user clicks back)
+              if (!context.mounted) return;
+
               Navigator.pushNamed(context, "/reader", arguments: manga);
             },
             child: const Text("TEST")),
