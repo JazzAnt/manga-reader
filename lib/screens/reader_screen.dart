@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -18,14 +19,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
   // Page starts as 0 to match index
   int page = 0;
 
-  void next(){
+  void next() {
     if (page == widget.manga.pages.length - 1) return;
     setState(() {
       page = page + 1;
     });
   }
 
-  void previous(){
+  void previous() {
     if (page == 0) return;
     setState(() {
       page = page - 1;
@@ -34,25 +35,24 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Uint8List image = widget.manga.pages[page].imageBytes;
-
     return Scaffold(
-      appBar: AppBar(title: Text("Reader Screen"),),
-      body: Padding(padding: EdgeInsetsGeometry.all(16),
-        child: Column(children: [
-          SizedBox(
-            height: 600,
-            child: Image.memory(
-                image
+      appBar: AppBar(title: Text("Reader Screen")),
+      body: Padding(
+        padding: EdgeInsetsGeometry.all(16),
+        child: Stack(
+          alignment: .bottomCenter,
+          children: <Widget>[
+            PageView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: widget.manga.pages.length,
+              itemBuilder: (context, index) {
+                return InteractiveViewer(
+                  child: Image.memory(widget.manga.pages[index].imageBytes),
+                );
+              },
             ),
-          ),
-          Row(
-            children: [
-              ElevatedButton(onPressed: previous, child: Text("Previous")),
-              ElevatedButton(onPressed: next, child: Text("Next"))
-            ],
-          )
-        ],)
+          ],
+        )
       ),
     );
   }
