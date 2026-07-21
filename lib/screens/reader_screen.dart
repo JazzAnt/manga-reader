@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manga_reader/models/manga.dart';
 
@@ -22,11 +23,13 @@ class ReaderScreen extends StatefulWidget {
 class _ReaderScreenState extends State<ReaderScreen> {
   late PageController _controller;
   late List<MemoryImage> _pages;
+  late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
     _controller = PageController();
+    _currentIndex = widget.startingPage;
 
     // Create a list of MemoryImage from bytes.
     // Mostly so I need to write shorter code (don't need widget.manga.pages)
@@ -34,11 +37,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
             (page) => MemoryImage(page.imageBytes)
     ).toList();
 
-    // Change page to startingPage
-    _controller.jumpToPage(widget.startingPage);
-    // Preload images around startingPage
-    _precacheImageAround(widget.startingPage);
+    // This callback makes sure PageView is created and _controller is
+    // attached to PageView before attempting to call .jumpToPage()
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_controller.hasClients) {
+        // Prepare PageView to start at the starting page
+        _controller.jumpToPage(_currentIndex);
+        _precacheImageAround(_currentIndex);
+      }
+    });
+
   }
+
+
 
   // This pre-load and cache images before and after the given [index]
   // Thus it would already be loaded when the user swipes to the next or
@@ -55,6 +66,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
         // Pre-cache image in index [i]
         precacheImage(_pages[i], context);
       }
+  }
+
+  // TODO: Add checks to avoid going out of bounds
+  void _goToPageIndex(int targetIndex){
+    _controller.animateToPage(
+        targetIndex,
+        duration: Duration(milliseconds: 333),
+        curve: Curves.easeInOut
+    );
+    setState(() {
+      _currentIndex = targetIndex;
+    });
   }
 
   @override
@@ -78,8 +101,57 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 );
               },
             ),
+            PageNavigator(
+                // Remember to modify this if targeting other desktops
+                isOnDesktop: (defaultTargetPlatform == TargetPlatform.windows),
+                goToPageIndex: _goToPageIndex,
+                currentIndex: _currentIndex,
+                pageCount: _pages.length
+            )
           ],
         )
+      ),
+    );
+  }
+}
+
+class PageNavigator extends StatelessWidget {
+  const PageNavigator({
+    super.key,
+    required this.isOnDesktop,
+    required this.goToPageIndex,
+    required this.currentIndex,
+    required this.pageCount
+  });
+
+  final bool isOnDesktop;
+  final void Function(int) goToPageIndex;
+  final int currentIndex;
+  final int pageCount;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isOnDesktop) return const SizedBox.shrink();
+
+    return Padding(
+      padding: .all(10),
+      child: Row(
+        mainAxisAlignment: .center,
+        children: <Widget>[
+          IconButton(
+              onPressed: () => goToPageIndex(currentIndex - 1), // TODO: Disable button if page index would invalid
+              icon: Icon(Icons.arrow_left)
+          ),
+          ElevatedButton(
+              onPressed: null, // TODO: Navigate to page dialog
+              //            Index starts at 0 so need +1, page count doesn't
+              child: Text("${currentIndex + 1} / $pageCount")
+          ),
+          IconButton(
+              onPressed: () => goToPageIndex(currentIndex + 1), // TODO: Disable button if page index would invalid
+              icon: Icon(Icons.arrow_right)
+          ),
+        ],
       ),
     );
   }
