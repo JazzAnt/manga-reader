@@ -4,9 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manga_reader/models/manga.dart';
 
-/// Screen to display pages of a Manga object. Incomplete.
-///
-/// Current progress: basic navigation between pages. no error validation.
+/// Screen to display pages of a Manga object.
 class ReaderScreen extends StatefulWidget {
   final Manga manga;
   final int startingPage;
@@ -50,47 +48,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
         _precacheImageAround(_currentIndex);
       }
     });
-
-  }
-
-  // This pre-load and cache images before and after the given [index]
-  // Thus it would already be loaded when the user swipes to the next or
-  // previous page.
-  // This should be called on every time page in PageView is changed.
-  // [radius] is the range of preload, for example in the default of 3 it would
-  // preload the 3 next and 3 previous images.
-  // TODO: Settings page where user can customize radius
-  void _precacheImageAround(int index, {int radius = 3}){
-    // For loop from (index - radius) to (index + radius)
-      for (int i = index - radius; i <= index + radius; i++){
-        // Skip if [i] is below 0 or above max index
-        if (i < 0 || i >= _pages.length) continue;
-        // Pre-cache image in index [i]
-        precacheImage(_pages[i], context);
-      }
-  }
-
-  // TODO: Add checks to avoid going out of bounds
-  void _goToPageIndex(int targetIndex){
-    _controller.animateToPage(
-        targetIndex,
-        duration: Duration(milliseconds: 333),
-        curve: Curves.easeInOut
-    );
-    setState(() {
-      _currentIndex = targetIndex;
-
-      // Cancel timer if already exists, used when user is changing pages fast.
-      _showIndicatorTimer?.cancel();
-
-      // Show indicator, then turn it off once timer runs out.
-      _showIndicator = true;
-      _showIndicatorTimer = Timer(Duration(seconds: 1), () {
-        setState(() {
-          _showIndicator = false;
-        });
-      });
-    });
   }
 
   @override
@@ -105,12 +62,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
               alignment: .center,
               child: PageView.builder(
                 controller: _controller,
-                onPageChanged: (index) {
-                  _precacheImageAround(index);
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                  },
+                onPageChanged: (index) {_onPageChange(index);},
                 scrollDirection: Axis.horizontal,
                 allowImplicitScrolling: true,
                 itemCount: _pages.length,
@@ -124,8 +76,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             Align(
               alignment: .bottomCenter,
               child: PageNavigator(
-                // Remember to modify this if targeting other desktops
-                  isOnDesktop: (defaultTargetPlatform == TargetPlatform.windows),
+                  isOnDesktop: _isOnDesktop,
                   goToPageIndex: _goToPageIndex,
                   currentIndex: _currentIndex,
                   pageCount: _pages.length
@@ -148,9 +99,66 @@ class _ReaderScreenState extends State<ReaderScreen> {
       ),
     );
   }
+  // Moves the PageView to a target page index.
+  void _goToPageIndex(int targetIndex){
+    // If out of bounds, do nothing.
+    if (targetIndex < 0 || targetIndex >= _pages.length) return;
+
+    _controller.animateToPage(
+        targetIndex,
+        duration: Duration(milliseconds: 333),
+        curve: Curves.easeInOut
+    );
+    _onPageChange(targetIndex);
+  }
+
+  // Bundles all functions that should happen when page is changed.
+  void _onPageChange(int targetIndex){
+    _precacheImageAround(targetIndex);
+    setState(() {
+      _currentIndex = targetIndex;
+
+      // Cancel timer if already exists, used when user is changing pages fast.
+      _showIndicatorTimer?.cancel();
+
+      // Show indicator, then turn it off once timer runs out.
+      _showIndicator = true;
+      _showIndicatorTimer = Timer(Duration(seconds: 1), () {
+        setState(() {
+          _showIndicator = false;
+        });
+      });
+    });
+  }
+
+  // Pre-cache all images before and after the current index, smoother user exp.
+  // TODO: Settings page where user can customize radius
+  void _precacheImageAround(int index, {int radius = 3}){
+    // For loop from (index - radius) to (index + radius)
+    for (int i = index - radius; i <= index + radius; i++){
+      // Skip if [i] is below 0 or above max index
+      if (i < 0 || i >= _pages.length) continue;
+      // Pre-cache image in index [i]
+      precacheImage(_pages[i], context);
+    }
+  }
+
+  // return true only if on native desktop apps. false if web or mobile.
+  bool get _isOnDesktop =>
+    !kIsWeb
+    && switch (defaultTargetPlatform) {
+      .windows || .linux || .macOS => true,
+      .android || .fuchsia || .iOS => false,
+    };
 }
 
+/// Widget that shows a page indicator (e.g. (1/10)).
+/// [currentIndex] the current index of the page (starts at 0).
+/// [pageCount] the total page count.
 class PageIndicator extends StatelessWidget {
+  // Note: this function is probably unnecessary as it's just a padded Text
+  // but I'm keeping it in case I want to stylize the indicator later.
+  // Easier to modify when separated over here.
   const PageIndicator({
     super.key,
     required this.currentIndex,
@@ -162,12 +170,17 @@ class PageIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: .all(10),
+      padding: .directional(top: 10),
       child: Text("${currentIndex + 1}/$pageCount"),
     );
   }
 }
 
+/// Buttons that handle page switching for desktop where swipe is disabled.
+/// [isOnDesktop] if false then this shows no widget.
+/// [goToPageIndex] a function to handle page switching. arg is target page.
+/// [currentIndex] the current index of the page (starts at 0).
+/// [pageCount] the total page count.
 class PageNavigator extends StatelessWidget {
   const PageNavigator({
     super.key,
@@ -191,13 +204,19 @@ class PageNavigator extends StatelessWidget {
       child: Row(
         mainAxisAlignment: .center,
         children: <Widget>[
+          // TODO: Better buttons?
+          // I was thinking maybe a button on the sides that fade in when
+          // mouse is hovering on the side is more intuitive than this.
+          // But this is good enough for now.
           IconButton(
               onPressed: () => goToPageIndex(currentIndex - 1), // TODO: Disable button if page index would invalid
               icon: Icon(Icons.arrow_left)
           ),
           ElevatedButton(
-              onPressed: null, // TODO: Navigate to page dialog
-              //            Index starts at 0 so need +1, page count doesn't
+              onPressed: null, // TODO: Navigate to page jump dialog which allow user to jump to specific page
+              // As the to-do says, the idea is to show a dialog or popup
+              // where there's a number input or a slider or something that
+              // lets the user quickly jump to a distant page.
               child: Text("${currentIndex + 1} / $pageCount")
           ),
           IconButton(
