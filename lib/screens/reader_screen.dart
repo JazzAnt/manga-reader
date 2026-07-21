@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manga_reader/models/manga.dart';
@@ -24,6 +26,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   late PageController _controller;
   late List<MemoryImage> _pages;
   late int _currentIndex;
+  bool _showIndicator = false;
+  Timer? _showIndicatorTimer;
 
   @override
   void initState() {
@@ -48,8 +52,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
     });
 
   }
-
-
 
   // This pre-load and cache images before and after the given [index]
   // Thus it would already be loaded when the user swipes to the next or
@@ -77,6 +79,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
     );
     setState(() {
       _currentIndex = targetIndex;
+
+      // Cancel timer if already exists, used when user is changing pages fast.
+      _showIndicatorTimer?.cancel();
+
+      // Show indicator, then turn it off once timer runs out.
+      _showIndicator = true;
+      _showIndicatorTimer = Timer(Duration(seconds: 1), () {
+        setState(() {
+          _showIndicator = false;
+        });
+      });
     });
   }
 
@@ -87,30 +100,70 @@ class _ReaderScreenState extends State<ReaderScreen> {
       body: Padding(
         padding: EdgeInsetsGeometry.all(16),
         child: Stack(
-          alignment: .bottomCenter,
-          children: <Widget>[
-            PageView.builder(
-              controller: _controller,
-              onPageChanged: (index) {_precacheImageAround(index);},
-              scrollDirection: Axis.horizontal,
-              allowImplicitScrolling: true,
-              itemCount: _pages.length,
-              itemBuilder: (context, index) {
-                return InteractiveViewer(
-                  child: Image(image: _pages[index],),
-                );
-              },
+          children: [
+            Align(
+              alignment: .center,
+              child: PageView.builder(
+                controller: _controller,
+                onPageChanged: (index) {
+                  _precacheImageAround(index);
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                  },
+                scrollDirection: Axis.horizontal,
+                allowImplicitScrolling: true,
+                itemCount: _pages.length,
+                itemBuilder: (context, index) {
+                  return InteractiveViewer(
+                    child: Image(image: _pages[index],),
+                  );
+                },
+              ),
             ),
-            PageNavigator(
+            Align(
+              alignment: .bottomCenter,
+              child: PageNavigator(
                 // Remember to modify this if targeting other desktops
-                isOnDesktop: (defaultTargetPlatform == TargetPlatform.windows),
-                goToPageIndex: _goToPageIndex,
-                currentIndex: _currentIndex,
-                pageCount: _pages.length
+                  isOnDesktop: (defaultTargetPlatform == TargetPlatform.windows),
+                  goToPageIndex: _goToPageIndex,
+                  currentIndex: _currentIndex,
+                  pageCount: _pages.length
+              ),
+            ),
+            Align(
+              alignment: .topCenter,
+              child: AnimatedOpacity(
+                opacity: _showIndicator ? 1 : 0,
+                duration: Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                child: PageIndicator(
+                    currentIndex: _currentIndex,
+                    pageCount: _pages.length
+                ),
+              ),
             )
           ],
         )
       ),
+    );
+  }
+}
+
+class PageIndicator extends StatelessWidget {
+  const PageIndicator({
+    super.key,
+    required this.currentIndex,
+    required this.pageCount
+  });
+  final int currentIndex;
+  final int pageCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: .all(10),
+      child: Text("${currentIndex + 1}/$pageCount"),
     );
   }
 }
