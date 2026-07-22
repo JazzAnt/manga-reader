@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/screens/selector_screen.dart';
 import './services/manga/file_reader.dart';
 import './services/manga/zip_handler.dart';
@@ -7,7 +8,11 @@ import './screens/reader_screen.dart';
 import 'models/manga.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    )
+  );
 }
 
 class MyApp extends StatelessWidget {

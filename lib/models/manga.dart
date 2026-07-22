@@ -11,5 +11,8 @@ class Manga {
   /// A list of [MangaPage] which represents the pages of the manga.
   List<MangaPage> get pages => _pages;
 
+  /// The page count of the Manga
+  int get pageCount => _pages.length;
+
   Manga(this._title, this._pages);
 }
