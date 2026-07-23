@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/providers/reader_provider.dart';
 
 import '../models/zip.dart';
 import '../services/manga/file_reader.dart';
-import '../services/manga/zip_handler.dart';
 
 /// Has a button that opens a file picker and redirects to reader screen.
 /// Mostly placeholder screen for testing, will either be updated or
-/// replaced by a better screen.
-class SelectorScreen extends StatefulWidget {
+/// replaced by a better screen. Doesn't even need to be stateful
+class SelectorScreen extends ConsumerStatefulWidget {
   const SelectorScreen({super.key});
   @override
-  State<StatefulWidget> createState() => _SelectorScreenState();
+  ConsumerState<SelectorScreen> createState() => _SelectorScreenState();
 }
 
-class _SelectorScreenState extends State<SelectorScreen> {
+class _SelectorScreenState extends ConsumerState<SelectorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,14 +25,14 @@ class _SelectorScreenState extends State<SelectorScreen> {
               if (file == null){
                 return;
               }
-              final manga = ZipHandler().zipToManga(file);
+              ref.read(readerProvider.notifier).loadManga(file);
 
               // This checks if this Widget still exists after the await from
               // FileReader, making sure Navigator doesn't execute if the
               // Widget have been dismounted (e.g. user clicks back)
               if (!context.mounted) return;
 
-              Navigator.pushNamed(context, "/reader", arguments: manga);
+              Navigator.pushNamed(context, "/reader");
             },
             child: const Text("TEST")),
       ),

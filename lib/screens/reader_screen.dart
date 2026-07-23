@@ -2,28 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/manga.dart';
+import 'package:manga_reader/providers/reader_provider.dart';
 
 /// Screen to display pages of a Manga object.
-class ReaderScreen extends StatefulWidget {
-  final Manga manga;
-  final int startingPage;
-  // Starting page defaults to 0.
-  // But can be modified for continue reading.
-  // TODO: Memorize latest page when user leaves reader while reading manga
-  // NOTE: There is no check is startingPage exceeded the manga page count.
-  // This widget assumes that both arguments are valid.
-  // TODO: Add a check to the app function that calls ReaderScreen
-  const ReaderScreen({super.key, required this.manga, this.startingPage = 0});
+class ReaderScreen extends ConsumerStatefulWidget {
+  const ReaderScreen({super.key});
 
   @override
-  State<StatefulWidget> createState() => _ReaderScreenState();
+  ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
 
-class _ReaderScreenState extends State<ReaderScreen> {
+class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   late PageController _controller;
-  late List<MemoryImage> _pages;
-  late int _currentIndex;
+  bool _startingPageHandled = false;
   bool _showIndicator = false;
   Timer? _showIndicatorTimer;
 
@@ -31,78 +24,58 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void initState() {
     super.initState();
     _controller = PageController();
-    _currentIndex = widget.startingPage;
+    // TODO: Memorize latest page when user leaves reader while reading manga
 
-    // Create a list of MemoryImage from bytes.
-    // Mostly so I need to write shorter code (don't need widget.manga.pages)
-    _pages = widget.manga.pages.map(
-            (page) => MemoryImage(page.imageBytes)
-    ).toList();
+    // Triggers when provider is updated
+    ref.listenManual(readerProvider, (prev, next) {
+      // Trigger only once
+      if(_startingPageHandled) return;
 
-    // This callback makes sure PageView is created and _controller is
-    // attached to PageView before attempting to call .jumpToPage()
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_controller.hasClients) {
-        // Prepare PageView to start at the starting page
-        _controller.jumpToPage(_currentIndex);
-        _precacheImageAround(_currentIndex);
-      }
+      next.whenData((reader){
+        // Waits until PageView exists
+        WidgetsBinding.instance.addPostFrameCallback((_){
+          // Waits until controller has clients (PageView)
+          if (_controller.hasClients && reader != null){
+            _controller.jumpToPage(reader.currentIndex);
+            _precacheImageAround(reader.currentIndex);
+            _startingPageHandled = true;
+          }
+        });
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final reader = ref.watch(readerProvider);
     return Scaffold(
       appBar: AppBar(title: Text("Reader Screen")),
       body: Padding(
         padding: EdgeInsetsGeometry.all(16),
-        child: Stack(
-          children: [
-            Align(
-              alignment: .center,
-              child: PageView.builder(
+        child: reader.when(
+            data: (readerState) => readerState == null
+            ? Text("Reader State is Null") //TODO: Custom screen for null
+            : ReaderWidget(
                 controller: _controller,
-                onPageChanged: (index) {_onPageChange(index);},
-                scrollDirection: Axis.horizontal,
-                allowImplicitScrolling: true,
-                itemCount: _pages.length,
-                itemBuilder: (context, index) {
-                  return InteractiveViewer(
-                    child: Image(image: _pages[index],),
-                  );
-                },
-              ),
+                onPageChange: _onPageChange,
+                goToPageIndex: _goToPageIndex,
+                manga: readerState.manga,
+                currentIndex: readerState.currentIndex,
+                showIndicator: _showIndicator,
+                isOnDesktop: _isOnDesktop,
             ),
-            Align(
-              alignment: .bottomCenter,
-              child: PageNavigator(
-                  isOnDesktop: _isOnDesktop,
-                  goToPageIndex: _goToPageIndex,
-                  currentIndex: _currentIndex,
-                  pageCount: _pages.length
-              ),
-            ),
-            Align(
-              alignment: .topCenter,
-              child: AnimatedOpacity(
-                opacity: _showIndicator ? 1 : 0,
-                duration: Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                child: PageIndicator(
-                    currentIndex: _currentIndex,
-                    pageCount: _pages.length
-                ),
-              ),
-            )
-          ],
+            loading: () => CircularProgressIndicator(),
+            // TODO: Custom error screen
+            error: (error, stack) => Text(error.toString() + stack.toString()),
         )
       ),
     );
   }
   // Moves the PageView to a target page index.
   void _goToPageIndex(int targetIndex){
-    // If out of bounds, do nothing.
-    if (targetIndex < 0 || targetIndex >= _pages.length) return;
+    final indexValid =
+      ref.read(readerProvider.notifier).isIndexWithinBounds(targetIndex);
+    if (!indexValid) return;
 
     _controller.animateToPage(
         targetIndex,
@@ -114,10 +87,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   // Bundles all functions that should happen when page is changed.
   void _onPageChange(int targetIndex){
+    print(
+        PaintingBinding.instance.imageCache.currentSizeBytes
+    );
+    print(
+        PaintingBinding.instance.imageCache.maximumSizeBytes
+    );
+
+    ref.read(readerProvider.notifier).setIndex(targetIndex);
     _precacheImageAround(targetIndex);
     setState(() {
-      _currentIndex = targetIndex;
-
       // Cancel timer if already exists, used when user is changing pages fast.
       _showIndicatorTimer?.cancel();
 
@@ -133,13 +112,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   // Pre-cache all images before and after the current index, smoother user exp.
   // TODO: Settings page where user can customize radius
-  void _precacheImageAround(int index, {int radius = 3}){
+  void _precacheImageAround(int index, {int radius = 3}) async {
+    final reader = ref.read(readerProvider).value;
+    if (reader == null) return;
+
+    final pages = reader.manga.pages;
     // For loop from (index - radius) to (index + radius)
     for (int i = index - radius; i <= index + radius; i++){
       // Skip if [i] is below 0 or above max index
-      if (i < 0 || i >= _pages.length) continue;
+      if (i < 0 || i >= pages.length) continue;
       // Pre-cache image in index [i]
-      precacheImage(_pages[i], context);
+      precacheImage(MemoryImage(pages[i].imageBytes), context);
     }
   }
 
@@ -150,6 +133,74 @@ class _ReaderScreenState extends State<ReaderScreen> {
       .windows || .linux || .macOS => true,
       .android || .fuchsia || .iOS => false,
     };
+}
+
+class ReaderWidget extends StatelessWidget {
+  final PageController controller;
+  final void Function(int) onPageChange;
+  final void Function(int) goToPageIndex;
+
+  final Manga manga;
+  final int currentIndex;
+
+  final bool showIndicator;
+  final bool isOnDesktop;
+
+  const ReaderWidget({
+    super.key,
+    required this.controller,
+    required this.onPageChange,
+    required this.goToPageIndex,
+    required this.manga,
+    required this.currentIndex,
+    required this.showIndicator,
+    required this.isOnDesktop,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Align(
+          alignment: .center,
+          child: PageView.builder(
+            controller: controller,
+            onPageChanged: (index) {onPageChange(index);},
+            scrollDirection: Axis.horizontal,
+            allowImplicitScrolling: true,
+            itemCount: manga.pageCount,
+            itemBuilder: (context, index) {
+              return InteractiveViewer(
+                child: Image(image: MemoryImage(manga.pages[index].imageBytes)),
+              );
+            },
+          ),
+        ),
+        Align(
+          alignment: .bottomCenter,
+          child: PageNavigator(
+              isOnDesktop: isOnDesktop,
+              goToPageIndex: goToPageIndex,
+              currentIndex: currentIndex,
+              pageCount: manga.pageCount,
+          ),
+        ),
+        Align(
+          alignment: .topCenter,
+          child: AnimatedOpacity(
+            opacity: showIndicator ? 1 : 0,
+            duration: Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            child: PageIndicator(
+                currentIndex: currentIndex,
+                pageCount: manga.pageCount
+            ),
+          ),
+        )
+      ],
+    );
+  }
+
 }
 
 /// Widget that shows a page indicator (e.g. (1/10)).
@@ -187,13 +238,15 @@ class PageNavigator extends StatelessWidget {
     required this.isOnDesktop,
     required this.goToPageIndex,
     required this.currentIndex,
-    required this.pageCount
+    required this.pageCount,
   });
 
   final bool isOnDesktop;
   final void Function(int) goToPageIndex;
   final int currentIndex;
   final int pageCount;
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +262,9 @@ class PageNavigator extends StatelessWidget {
           // mouse is hovering on the side is more intuitive than this.
           // But this is good enough for now.
           IconButton(
-              onPressed: () => goToPageIndex(currentIndex - 1), // TODO: Disable button if page index would invalid
+              onPressed: currentIndex > 0
+                ? () => goToPageIndex(currentIndex - 1)
+                : null,
               icon: Icon(Icons.arrow_left)
           ),
           ElevatedButton(
@@ -220,7 +275,9 @@ class PageNavigator extends StatelessWidget {
               child: Text("${currentIndex + 1} / $pageCount")
           ),
           IconButton(
-              onPressed: () => goToPageIndex(currentIndex + 1), // TODO: Disable button if page index would invalid
+              onPressed: currentIndex < pageCount - 1
+                ? () => goToPageIndex(currentIndex + 1)
+                : null,
               icon: Icon(Icons.arrow_right)
           ),
         ],
