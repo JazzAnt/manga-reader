@@ -42,22 +42,8 @@ class ReaderNotifier extends AsyncNotifier<ReaderState?> {
   bool isIndexWithinBounds(int index) {
     final reader = state.value;
     if (reader == null) return false;
-    return reader.currentIndex >= 0 ||
+    return reader.currentIndex >= 0 &&
         reader.currentIndex < reader.manga.pageCount;
-  }
-
-  /// Returns true if currentIndex is above 0 (and reader is not null).
-  bool canGoPrevious() {
-    final reader = state.value;
-    if (reader == null) return false;
-    return reader.currentIndex > 0;
-  }
-
-  /// Returns true if currentIndex is below the max (and reader is not null)
-  bool canGoNext() {
-    final reader = state.value;
-    if (reader == null) return false;
-    return reader.currentIndex < reader.manga.pageCount - 1;
   }
 }
 
