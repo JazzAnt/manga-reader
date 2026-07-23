@@ -1,45 +1,64 @@
 import 'dart:async';
+import 'dart:isolate';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/zip.dart';
 
 import '../models/manga.dart';
-import '../services/manga/file_reader.dart';
 import '../services/manga/zip_handler.dart';
 
-final readerProvider =
-  AsyncNotifierProvider<ReaderNotifier, ReaderState?>(ReaderNotifier.new);
+/// Provides data, mainly for Reader Screen
+final readerProvider = AsyncNotifierProvider<ReaderNotifier, ReaderState?>(
+  ReaderNotifier.new,
+);
 
-class ReaderNotifier extends AsyncNotifier<ReaderState?>{
+/// Holds data for reader provider
+class ReaderNotifier extends AsyncNotifier<ReaderState?> {
   @override
   FutureOr<ReaderState?> build() {
     // Initial value is null because user haven't opened a manga file.
     return null;
   }
 
-  Future<void> loadManga() async {
-    // Tell notifier that data is being loaded
+  /// Loads the manga to the reader notifier.
+  Future<void> loadManga(Zip zipFile) async {
     state = const AsyncLoading();
 
-    final Zip? file = await FileReader().selectZip();
-    if (file == null) {
-      // If fail, data is null
-      state = const AsyncData(null);
-      return;
-    }
-
-    final manga = ZipHandler().zipToManga(file);
-
-    // If success, data is read zip.
-    state = AsyncData(
-      ReaderState(
-        manga: manga,
-        currentIndex: 0,
-      )
-    );
+    state = await AsyncValue.guard(() async {
+      // Isolate to not freeze the UI while parsing
+      final manga = await Isolate.run(() => ZipHandler().zipToManga(zipFile));
+      return ReaderState(manga: manga, currentIndex: 0);
+    });
   }
-//TODO: look up reader.when(loading, error, data)
-//TODO: look up AsyncLoading().copyWithPrevious(state)
+
+  /// Changes the current index.
+  void setIndex(int index) {
+    final reader = state.value;
+    if (reader == null) return;
+    state = AsyncData(reader.copyWith(currentIndex: index));
+  }
+
+  /// Returns true if the argument is within the bounds of the manga page count.
+  bool isIndexWithinBounds(int index) {
+    final reader = state.value;
+    if (reader == null) return false;
+    return reader.currentIndex >= 0 ||
+        reader.currentIndex < reader.manga.pageCount;
+  }
+
+  /// Returns true if currentIndex is above 0 (and reader is not null).
+  bool canGoPrevious() {
+    final reader = state.value;
+    if (reader == null) return false;
+    return reader.currentIndex > 0;
+  }
+
+  /// Returns true if currentIndex is below the max (and reader is not null)
+  bool canGoNext() {
+    final reader = state.value;
+    if (reader == null) return false;
+    return reader.currentIndex < reader.manga.pageCount - 1;
+  }
 }
 
 /// Custom state class for our provider
@@ -51,10 +70,10 @@ class ReaderState {
 
   // state.copyWith used to set a new state. We need this because variables are
   // immutable (final) so it needs to be recreated (can't just be set)
-  ReaderState copyWith({Manga? manga, int? currentIndex}){
+  ReaderState copyWith({Manga? manga, int? currentIndex}) {
     return ReaderState(
-        manga: manga ?? this.manga,
-        currentIndex: currentIndex ?? this.currentIndex
+      manga: manga ?? this.manga,
+      currentIndex: currentIndex ?? this.currentIndex,
     );
   }
 }
