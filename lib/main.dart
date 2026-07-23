@@ -4,6 +4,11 @@ import 'package:manga_reader/screens/selector_screen.dart';
 import './screens/reader_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // TODO: Different cache size for Desktop and Android
+  // TODO: Allow user to change this in settings
+  PaintingBinding.instance.imageCache.maximumSizeBytes =
+      300 << 20; // 300 MB Image Cache
   runApp(
     const ProviderScope(
       child: MyApp(),
