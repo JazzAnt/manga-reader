@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/manga.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
@@ -16,6 +18,7 @@ class ReaderScreen extends ConsumerStatefulWidget {
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   late PageController _controller;
+  final FocusNode _focusNode = FocusNode();
   bool _startingPageHandled = false;
   bool _showIndicator = false;
   Timer? _showIndicatorTimer;
@@ -48,29 +51,67 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final reader = ref.watch(readerProvider);
-    return Padding(
-      padding: EdgeInsetsGeometry.all(16),
-      child: reader.when(
-        data: (readerState) => readerState == null
-            ? Text("Reader State is Null") //TODO: Custom screen for null
-            : ReaderWidget(
-                controller: _controller,
-                onPageChange: _onPageChange,
-                goToPageIndex: _goToPageIndex,
-                manga: readerState.manga,
-                currentIndex: readerState.currentIndex,
-                showIndicator: _showIndicator,
-                isOnDesktop: _isOnDesktop,
-              ),
-        // TODO: Custom Loading Screen?
-        loading: () => Center(child: CircularProgressIndicator()),
-        // TODO: Custom error screen
-        error: (error, stack) => Text(error.toString() + stack.toString()),
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        // Ignore if event isn't keydown
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+        // Ignore if provider is null
+        final ReaderState? readerState = reader.value;
+        if (readerState == null) return KeyEventResult.ignored;
+
+        // TODO: Setting for users to modify these
+        // Go Previous Page
+        if (
+            event.logicalKey == LogicalKeyboardKey.arrowLeft
+            && readerState.currentIndex > 0
+        ) {
+          _goToPageIndex(readerState.currentIndex - 1);
+          return KeyEventResult.handled;
+        }
+        // Go Next Page
+        if (
+          event.logicalKey == LogicalKeyboardKey.arrowRight
+          && readerState.currentIndex < readerState.manga.pageCount - 1
+        ) {
+          _goToPageIndex(readerState.currentIndex + 1);
+          return KeyEventResult.handled;
+        }
+
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: () {
+          _focusNode.requestFocus();
+        },
+        child: Padding(
+          padding: EdgeInsetsGeometry.all(16),
+          child: reader.when(
+            data: (readerState) => readerState == null
+                ? Text("Reader State is Null") //TODO: Custom screen for null
+                : ReaderWidget(
+                    controller: _controller,
+                    onPageChange: _onPageChange,
+                    goToPageIndex: _goToPageIndex,
+                    manga: readerState.manga,
+                    currentIndex: readerState.currentIndex,
+                    showIndicator: _showIndicator,
+                    isOnDesktop: _isOnDesktop,
+                  ),
+            // TODO: Custom Loading Screen?
+            loading: () => Center(child: CircularProgressIndicator()),
+            // TODO: Custom error screen
+            error: (error, stack) => Text(error.toString() + stack.toString()),
+          ),
+        ),
       ),
     );
   }
 
-  // Moves the PageView to a target page index.
+  // Moves the PageView to a target page index. This also calls _onPageChange()
+  // so no need to call that again if navigating using this.
   void _goToPageIndex(int targetIndex) {
     final indexValid = ref
         .read(readerProvider.notifier)
@@ -87,7 +128,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   // Bundles all functions that should happen when page is changed.
   void _onPageChange(int targetIndex) {
-
     ref.read(readerProvider.notifier).setIndex(targetIndex);
     _precacheImageAround(targetIndex);
     setState(() {
@@ -173,8 +213,8 @@ class ReaderWidget extends StatelessWidget {
             itemBuilder: (context, index) {
               return InteractiveViewer(
                 child: Image(
-                    image: MemoryImage(manga.pages[index].imageBytes),
-                    fit: BoxFit.contain,
+                  image: MemoryImage(manga.pages[index].imageBytes),
+                  fit: BoxFit.contain,
                   //TODO: allow user to choose between contain, fitH, fitW
                 ),
               );
