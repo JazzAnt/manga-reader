@@ -160,6 +160,10 @@ class ReaderWidget extends StatelessWidget {
         Align(
           alignment: .center,
           child: PageView.builder(
+            // PageStorageKey prevents page resetting on rebuild (e.g. when
+            // desktop reader change from wide to narrow. The $manga.title
+            // makes sure keys aren't reused when changing between books.
+            key: PageStorageKey("reader_${manga.title}"),
             controller: controller,
             onPageChanged: (index) {
               onPageChange(index);
