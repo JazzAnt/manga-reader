@@ -87,8 +87,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   // Bundles all functions that should happen when page is changed.
   void _onPageChange(int targetIndex) {
-    print(PaintingBinding.instance.imageCache.currentSizeBytes);
-    print(PaintingBinding.instance.imageCache.maximumSizeBytes);
 
     ref.read(readerProvider.notifier).setIndex(targetIndex);
     _precacheImageAround(targetIndex);
@@ -131,6 +129,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       };
 }
 
+/// Widget to show the Manga along with controller UI elements.
 class ReaderWidget extends StatelessWidget {
   final PageController controller;
   final void Function(int) onPageChange;
