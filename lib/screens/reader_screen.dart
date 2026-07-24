@@ -173,7 +173,11 @@ class ReaderWidget extends StatelessWidget {
             itemCount: manga.pageCount,
             itemBuilder: (context, index) {
               return InteractiveViewer(
-                child: Image(image: MemoryImage(manga.pages[index].imageBytes)),
+                child: Image(
+                    image: MemoryImage(manga.pages[index].imageBytes),
+                    fit: BoxFit.contain,
+                  //TODO: allow user to choose between contain, fitH, fitW
+                ),
               );
             },
           ),
