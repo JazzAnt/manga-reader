@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/manga.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
+import 'package:manga_reader/widgets/hover_wrapper.dart';
 
 /// Screen to display pages of a Manga object.
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -72,18 +73,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
         // TODO: Setting for users to modify these
         // Go Previous Page
-        if (
-            event.logicalKey == LogicalKeyboardKey.arrowLeft
-            && readerState.currentIndex > 0
-        ) {
+        if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+            readerState.currentIndex > 0) {
           _goToPageIndex(readerState.currentIndex - 1);
           return KeyEventResult.handled;
         }
         // Go Next Page
-        if (
-          event.logicalKey == LogicalKeyboardKey.arrowRight
-          && readerState.currentIndex < readerState.manga.pageCount - 1
-        ) {
+        if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+            readerState.currentIndex < readerState.manga.pageCount - 1) {
           _goToPageIndex(readerState.currentIndex + 1);
           return KeyEventResult.handled;
         }
@@ -231,11 +228,15 @@ class ReaderWidget extends StatelessWidget {
         ),
         Align(
           alignment: .bottomCenter,
-          child: PageNavigator(
-            isOnDesktop: isOnDesktop,
-            goToPageIndex: goToPageIndex,
-            currentIndex: currentIndex,
-            pageCount: manga.pageCount,
+          // TODO: settings for user to disable it if they want to
+          child: HoverWrapper(
+            padding: 6,
+            child: PageNavigator(
+              isOnDesktop: isOnDesktop,
+              goToPageIndex: goToPageIndex,
+              currentIndex: currentIndex,
+              pageCount: manga.pageCount,
+            ),
           ),
         ),
         Align(
@@ -307,10 +308,6 @@ class PageNavigator extends StatelessWidget {
       child: Row(
         mainAxisAlignment: .center,
         children: <Widget>[
-          // TODO: Better buttons?
-          // I was thinking maybe a button on the sides that fade in when
-          // mouse is hovering on the side is more intuitive than this.
-          // But this is good enough for now.
           IconButton(
             onPressed: currentIndex > 0
                 ? () => goToPageIndex(currentIndex - 1)
@@ -320,9 +317,6 @@ class PageNavigator extends StatelessWidget {
           ElevatedButton(
             onPressed:
                 null, // TODO: Navigate to page jump dialog which allow user to jump to specific page
-            // As the to-do says, the idea is to show a dialog or popup
-            // where there's a number input or a slider or something that
-            // lets the user quickly jump to a distant page.
             child: Text("${currentIndex + 1} / $pageCount"),
           ),
           IconButton(
