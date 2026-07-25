@@ -49,6 +49,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    _showIndicatorTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final reader = ref.watch(readerProvider);
     return Focus(
