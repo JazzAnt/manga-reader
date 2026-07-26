@@ -1,7 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/screens/reader_layout_screen.dart';
+import 'package:manga_reader/screens/selector_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  // TODO: Different cache size for Desktop and Android
+  // TODO: Allow user to change this in settings
+  PaintingBinding.instance.imageCache.maximumSizeBytes =
+      300 << 20; // 300 MB Image Cache
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    )
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -12,7 +24,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
-      home: const Scaffold(),
+      initialRoute: "/",
+      routes: {
+        "/": (context) => const SelectorScreen(),
+        "/reader": (context) => const ReaderLayoutScreen()
+      },
     );
   }
 }
