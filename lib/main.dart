@@ -5,7 +5,7 @@ import 'package:manga_reader/screens/reader_layout_screen.dart';
 import 'package:manga_reader/screens/selector_screen.dart';
 import 'package:manga_reader/services/ocr/ocr_service.dart';
 
-import 'services/ocr/manga_ocr_service.dart';
+import 'services/ocr/desktop_ocr.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,8 +26,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO: Testing OCR service here, remember to remove when production
-    print("OCR TEST RESULT:");
-    MangaOCRService().recognizeText().then((result){print(result);});
+    DesktopOCR().recognizeText().then((result){
+      print("OCR TEST RESULT:");
+      print(result);
+    });
 
     return MaterialApp(
       title: 'Flutter Demo',
