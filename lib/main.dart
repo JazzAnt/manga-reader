@@ -29,6 +29,12 @@ class MyApp extends StatelessWidget {
     DesktopOCR().recognizeText().then((result){
       print("OCR TEST RESULT:");
       print(result);
+      print("OCR TEST RESULT2:");
+      print(result.data);
+      print("OCR TEST RESULT3:");
+      print(result.data!["response"]);
+      print("OCR TEST RESULT4:");
+      print(result.error);
     });
 
     return MaterialApp(

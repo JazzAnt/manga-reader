@@ -1,4 +1,5 @@
+import 'package:manga_reader/models/ocr_response.dart';
+
 abstract class OCRService {
-  // TODO: decide input and return type after OCR service obtained
-  Future recognizeText();
+  Future<OCRResponse> recognizeText();
 }
