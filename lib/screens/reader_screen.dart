@@ -9,6 +9,8 @@ import 'package:manga_reader/models/manga.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
 import 'package:manga_reader/widgets/hover_wrapper.dart';
 
+import '../services/ocr/desktop_ocr.dart';
+
 /// Screen to display pages of a Manga object.
 class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({super.key});
@@ -43,6 +45,14 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             _controller.jumpToPage(reader.currentIndex);
             _precacheImageAround(reader.currentIndex);
             _startingPageHandled = true;
+
+//TODO Remove these test functions
+DesktopOCR().recognizeText(reader.manga.pages.first.imageBytes).then((result){
+print("OCR TEST RESULT:");
+print(result.data);
+print("OCR TEST RESULT2:");
+print(result.error);
+            });
           }
         });
       });
