@@ -1,5 +1,5 @@
-class OCRResult{
+class OcrResult{
   final String text;
 
-  OCRResult({required this.text});
+  OcrResult({required this.text});
 }

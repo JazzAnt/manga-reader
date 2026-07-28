@@ -48,7 +48,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
 //TODO Remove these test functions
 final page = reader.manga.pages.first;
-DesktopOCR().recognizeText(page.imageBytes).then((result){
+DesktopOcr().recognizeText(page.imageBytes).then((result){
 print("OCR TEST RESULT:");
 print(result.text);
 });
