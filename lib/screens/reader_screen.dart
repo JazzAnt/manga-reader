@@ -49,9 +49,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 //TODO Remove these test functions
 DesktopOCR().recognizeText(reader.manga.pages.first.imageBytes).then((result){
 print("OCR TEST RESULT:");
-print(result.data);
-print("OCR TEST RESULT2:");
-print(result.error);
+print(result.text);
             });
           }
         });
