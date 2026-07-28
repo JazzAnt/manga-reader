@@ -9,7 +9,7 @@ class DesktopOCR implements OCRService {
   // Currently returns dummy text
   @override
   Future<OCRResult> recognizeText(Uint8List imageBytes) async {
-    Uri url = Uri.parse("http://127.0.0.1:8000/upload");
+    Uri url = Uri.parse("http://127.0.0.1:8000/ocr");
 
     var request = http.MultipartRequest(
       "POST",
@@ -17,7 +17,7 @@ class DesktopOCR implements OCRService {
     );
 
     request.files.add(
-      http.MultipartFile.fromBytes("image", imageBytes, filename: "test.png")
+      http.MultipartFile.fromBytes("image", imageBytes, filename: "ocr.png")
     );
 
     var streamedResponse = await request.send();
@@ -29,6 +29,6 @@ class DesktopOCR implements OCRService {
      throw Exception("Status Code ${response.statusCode}");
    }
 
-   return OCRResult(text: json["size"].toString());
+   return OCRResult(text: json["text"]);
   }
 }

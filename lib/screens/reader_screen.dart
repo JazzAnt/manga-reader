@@ -47,10 +47,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             _startingPageHandled = true;
 
 //TODO Remove these test functions
-DesktopOCR().recognizeText(reader.manga.pages.first.imageBytes).then((result){
+final page = reader.manga.pages.first;
+DesktopOCR().recognizeText(page.imageBytes).then((result){
 print("OCR TEST RESULT:");
 print(result.text);
-            });
+});
           }
         });
       });
