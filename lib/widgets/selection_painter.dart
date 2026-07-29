@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 class SelectionPainter extends CustomPainter {
   const SelectionPainter({required this.selection});
@@ -6,7 +6,19 @@ class SelectionPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    print("Repaint Called");
+    if (selection == null) return;
+
+    // Color the selection area translucent blue
+    final Paint shade = Paint()
+    ..color = Colors.blue.withValues(alpha: 0.25);
+    canvas.drawRect(selection!, shade);
+
+    // Color the borders opaque blue
+    final Paint border = Paint()
+    ..color = Colors.blue
+    ..style = .stroke
+    ..strokeWidth = 1;
+    canvas.drawRect(selection!, border);
   }
 
   @override
