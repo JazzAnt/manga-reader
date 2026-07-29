@@ -28,6 +28,7 @@ class _RectangleSelectorState extends State<RectangleSelector> {
       onPointerDown: (event) {
        setState(() {
          startPosition = event.localPosition;
+         currentPosition = event.localPosition;
        });
       },
       onPointerMove: (event) {
@@ -39,6 +40,7 @@ class _RectangleSelectorState extends State<RectangleSelector> {
       onPointerUp: (event) {
          setState(() {
            startPosition = null;
+           currentPosition = null;
          });
       },
       child: CustomPaint(
