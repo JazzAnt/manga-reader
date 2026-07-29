@@ -73,30 +73,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     return Focus(
       focusNode: _focusNode,
       autofocus: true,
-      onKeyEvent: (node, event) {
-        // Ignore if event isn't keydown
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-        // Ignore if provider is null
-        final ReaderState? readerState = reader.value;
-        if (readerState == null) return KeyEventResult.ignored;
-
-        // TODO: Setting for users to modify these
-        // Go Previous Page
-        if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
-            readerState.currentIndex > 0) {
-          _goToPageIndex(readerState.currentIndex - 1);
-          return KeyEventResult.handled;
-        }
-        // Go Next Page
-        if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-            readerState.currentIndex < readerState.manga.pageCount - 1) {
-          _goToPageIndex(readerState.currentIndex + 1);
-          return KeyEventResult.handled;
-        }
-
-        return KeyEventResult.ignored;
-      },
+      onKeyEvent: (node, event) => _onKeyEvent(node, event, reader),
       child: GestureDetector(
         onTap: () {
           _focusNode.requestFocus();
@@ -129,6 +106,36 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         ),
       ),
     );
+  }
+
+  // Handles onKeyEvent of Focus(). Placed here to not bloat build().
+  KeyEventResult _onKeyEvent(
+    FocusNode node,
+    KeyEvent event,
+    AsyncValue<ReaderState?> reader,
+  ) {
+    // Ignore if event isn't keydown
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // Ignore if provider is null
+    final ReaderState? readerState = reader.value;
+    if (readerState == null) return KeyEventResult.ignored;
+
+    // TODO: Setting for users to modify these
+    // Go Previous Page
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+        readerState.currentIndex > 0) {
+      _goToPageIndex(readerState.currentIndex - 1);
+      return KeyEventResult.handled;
+    }
+    // Go Next Page
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+        readerState.currentIndex < readerState.manga.pageCount - 1) {
+      _goToPageIndex(readerState.currentIndex + 1);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   // Moves the PageView to a target page index. This also calls _onPageChange()
