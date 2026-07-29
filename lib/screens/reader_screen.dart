@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/manga.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
 import 'package:manga_reader/widgets/hover_wrapper.dart';
+import 'package:manga_reader/widgets/rectangle_selector.dart';
 
 import '../services/ocr/desktop_ocr.dart';
 
@@ -46,12 +47,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
             _precacheImageAround(reader.currentIndex);
             _startingPageHandled = true;
 
-//TODO Remove these test functions
-final page = reader.manga.pages.first;
-DesktopOcr().recognizeText(page.imageBytes).then((result){
-print("OCR TEST RESULT:");
-print(result.text);
-});
+            //TODO Remove these test functions
+            // final page = reader.manga.pages.first;
+            // DesktopOcr().recognizeText(page.imageBytes).then((result) {
+            //   print("OCR TEST RESULT:");
+            //   print(result.text);
+            // });
           }
         });
       });
@@ -105,14 +106,20 @@ print(result.text);
           child: reader.when(
             data: (readerState) => readerState == null
                 ? Text("Reader State is Null") //TODO: Custom screen for null
-                : ReaderWidget(
-                    controller: _controller,
-                    onPageChange: _onPageChange,
-                    goToPageIndex: _goToPageIndex,
-                    manga: readerState.manga,
-                    currentIndex: readerState.currentIndex,
-                    showIndicator: _showIndicator,
-                    isOnDesktop: _isOnDesktop,
+                : Stack(
+                    children: [
+                      ReaderWidget(
+                        controller: _controller,
+                        onPageChange: _onPageChange,
+                        goToPageIndex: _goToPageIndex,
+                        manga: readerState.manga,
+                        currentIndex: readerState.currentIndex,
+                        showIndicator: _showIndicator,
+                        isOnDesktop: _isOnDesktop,
+                      ),
+                      //TODO: conditionally disable selector (otherwise blocks reader UI controls)
+                      RectangleSelector(),
+                    ],
                   ),
             // TODO: Custom Loading Screen?
             loading: () => Center(child: CircularProgressIndicator()),
