@@ -95,7 +95,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         isOnDesktop: _isOnDesktop,
                       ),
                       //TODO: conditionally disable selector (otherwise blocks reader UI controls)
-                      RectangleSelector(),
+                      RectangleSelector(onSelectionChanged: (rect) {
+                        if (rect == null) return;
+
+                        print("On Selection Changed:");
+                        print(rect.toString());
+                      },),
                     ],
                   ),
             // TODO: Custom Loading Screen?
