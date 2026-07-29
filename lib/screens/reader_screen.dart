@@ -97,9 +97,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                       //TODO: conditionally disable selector (otherwise blocks reader UI controls)
                       RectangleSelector(onSelectionChanged: (rect) {
                         if (rect == null) return;
-
-                        print("On Selection Changed:");
-                        print(rect.toString());
                       },),
                     ],
                   ),

@@ -22,12 +22,6 @@ class _RectangleSelectorState extends State<RectangleSelector> {
   Offset? currentPosition;
 
   @override
-  void initState() {
-    super.initState();
-    print("Rectangle Selector Active!");
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Listener(
       behavior: HitTestBehavior.opaque,
