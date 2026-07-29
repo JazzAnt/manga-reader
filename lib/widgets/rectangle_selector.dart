@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:manga_reader/widgets/selection_painter.dart';
 
 class RectangleSelector extends StatefulWidget {
   const RectangleSelector({super.key, required this.onSelectionChanged});
@@ -46,7 +47,10 @@ class _RectangleSelectorState extends State<RectangleSelector> {
            startPosition = null;
          });
       },
-      child: SizedBox.expand(),
+      child: CustomPaint(
+        painter: SelectionPainter(selection: _selectedRect),
+        child: SizedBox.expand(),
+      ),
     );
   }
 
