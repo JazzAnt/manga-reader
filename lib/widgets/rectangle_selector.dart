@@ -31,9 +31,9 @@ class RectangleSelector extends StatefulWidget {
 }
 
 class _RectangleSelectorState extends State<RectangleSelector> {
-  Offset? startPosition;
-  Offset? currentPosition;
-  Rect? selectedRect;
+  Offset? _startPosition;
+  Offset? _currentPosition;
+  Rect? _selectedRect;
 
   @override
   Widget build(BuildContext context) {
@@ -49,8 +49,8 @@ class _RectangleSelectorState extends State<RectangleSelector> {
             event.localPosition.dy.clamp(0, constraints.maxHeight)
           );
           setState(() {
-            startPosition = pos;
-            currentPosition = pos;
+            _startPosition = pos;
+            _currentPosition = pos;
           });
         },
         onPointerMove: (event) {
@@ -61,21 +61,21 @@ class _RectangleSelectorState extends State<RectangleSelector> {
               event.localPosition.dy.clamp(0, constraints.maxHeight)
           );
           setState(() {
-            currentPosition = pos;
+            _currentPosition = pos;
             widget.onSelectionChanged(_liveRect);
           });
         },
         onPointerUp: (event) {
           if (!widget.isActive) return;
           setState(() {
-            selectedRect = _liveRect;
-            startPosition = null;
-            currentPosition = null;
+            _selectedRect = _liveRect;
+            _startPosition = null;
+            _currentPosition = null;
             widget.onSelectionFinished();
           });
         },
         child: CustomPaint(
-          painter: SelectionPainter(liveRect: _liveRect, selectionRect: selectedRect),
+          painter: SelectionPainter(liveRect: _liveRect, selectionRect: _selectedRect),
           child: SizedBox.expand(),
         ),
       );
@@ -83,7 +83,7 @@ class _RectangleSelectorState extends State<RectangleSelector> {
   }
 
   Rect? get _liveRect {
-    if (startPosition == null || currentPosition == null) return null;
-    return Rect.fromPoints(startPosition!, currentPosition!);
+    if (_startPosition == null || _currentPosition == null) return null;
+    return Rect.fromPoints(_startPosition!, _currentPosition!);
   }
 }
