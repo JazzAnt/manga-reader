@@ -26,6 +26,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   bool _startingPageHandled = false;
   bool _showIndicator = false;
   Timer? _showIndicatorTimer;
+  bool _selectorActive = false;
 
   @override
   void initState() {
@@ -89,18 +90,30 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         controller: _controller,
                         onPageChange: _onPageChange,
                         goToPageIndex: _goToPageIndex,
+                        activateSelector: () {
+                          setState(() {
+                            _selectorActive = true;
+                          });
+                        },
                         manga: readerState.manga,
                         currentIndex: readerState.currentIndex,
                         showIndicator: _showIndicator,
                         isOnDesktop: _isOnDesktop,
                       ),
-                      //TODO: conditionally disable selector (otherwise blocks reader UI controls)
-                      RectangleSelector(
-                        isActive: true,
-                        onSelectionFinished: (){print("onSelectionCalled");},
-                        onSelectionChanged: (rect) {
-                        if (rect == null) return;
-                      },),
+                      IgnorePointer(
+                        ignoring: !_selectorActive,
+                        child: RectangleSelector(
+                          isActive: _selectorActive,
+                          onSelectionFinished: () {
+                            setState(() {
+                              _selectorActive = false;
+                            });
+                          },
+                          onSelectionChanged: (rect) {
+                            if (rect == null) return;
+                          },
+                        ),
+                      ),
                     ],
                   ),
             // TODO: Custom Loading Screen?
@@ -207,6 +220,7 @@ class ReaderWidget extends StatelessWidget {
   final PageController controller;
   final void Function(int) onPageChange;
   final void Function(int) goToPageIndex;
+  final void Function() activateSelector;
 
   final Manga manga;
   final int currentIndex;
@@ -219,6 +233,7 @@ class ReaderWidget extends StatelessWidget {
     required this.controller,
     required this.onPageChange,
     required this.goToPageIndex,
+    required this.activateSelector,
     required this.manga,
     required this.currentIndex,
     required this.showIndicator,
@@ -276,6 +291,15 @@ class ReaderWidget extends StatelessWidget {
             child: PageIndicator(
               currentIndex: currentIndex,
               pageCount: manga.pageCount,
+            ),
+          ),
+        ),
+        Align(
+          alignment: .topRight,
+          child: HoverWrapper(
+            child: ElevatedButton(
+              onPressed: activateSelector,
+              child: Text("OCR"),
             ),
           ),
         ),
