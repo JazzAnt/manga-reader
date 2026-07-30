@@ -20,6 +20,7 @@ class RectangleSelector extends StatefulWidget {
 class _RectangleSelectorState extends State<RectangleSelector> {
   Offset? startPosition;
   Offset? currentPosition;
+  Rect? selectedRect;
 
   @override
   Widget build(BuildContext context) {
@@ -46,24 +47,25 @@ class _RectangleSelectorState extends State<RectangleSelector> {
           );
           setState(() {
             currentPosition = pos;
-            widget.onSelectionChanged(_selectedRect);
+            widget.onSelectionChanged(_liveRect);
           });
         },
         onPointerUp: (event) {
           setState(() {
+            selectedRect = _liveRect;
             startPosition = null;
             currentPosition = null;
           });
         },
         child: CustomPaint(
-          painter: SelectionPainter(selection: _selectedRect),
+          painter: SelectionPainter(liveRect: _liveRect, selectionRect: selectedRect),
           child: SizedBox.expand(),
         ),
       );
     });
   }
 
-  Rect? get _selectedRect {
+  Rect? get _liveRect {
     if (startPosition == null || currentPosition == null) return null;
     return Rect.fromPoints(startPosition!, currentPosition!);
   }
