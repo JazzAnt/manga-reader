@@ -23,31 +23,44 @@ class _RectangleSelectorState extends State<RectangleSelector> {
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      behavior: HitTestBehavior.opaque,
-      onPointerDown: (event) {
-       setState(() {
-         startPosition = event.localPosition;
-         currentPosition = event.localPosition;
-       });
-      },
-      onPointerMove: (event) {
-        setState(() {
-          currentPosition = event.localPosition;
-          widget.onSelectionChanged(_selectedRect);
-        });
-      },
-      onPointerUp: (event) {
-         setState(() {
-           startPosition = null;
-           currentPosition = null;
-         });
-      },
-      child: CustomPaint(
-        painter: SelectionPainter(selection: _selectedRect),
-        child: SizedBox.expand(),
-      ),
-    );
+
+    return LayoutBuilder(builder: (builder, constraints) {
+      return Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: (event) {
+          // Clamp to constraint within bounds
+          final Offset pos = Offset(
+            event.localPosition.dx.clamp(0, constraints.maxWidth),
+            event.localPosition.dy.clamp(0, constraints.maxHeight)
+          );
+          setState(() {
+            startPosition = pos;
+            currentPosition = pos;
+          });
+        },
+        onPointerMove: (event) {
+          // Clamp to constraint within bounds
+          final Offset pos = Offset(
+              event.localPosition.dx.clamp(0, constraints.maxWidth),
+              event.localPosition.dy.clamp(0, constraints.maxHeight)
+          );
+          setState(() {
+            currentPosition = pos;
+            widget.onSelectionChanged(_selectedRect);
+          });
+        },
+        onPointerUp: (event) {
+          setState(() {
+            startPosition = null;
+            currentPosition = null;
+          });
+        },
+        child: CustomPaint(
+          painter: SelectionPainter(selection: _selectedRect),
+          child: SizedBox.expand(),
+        ),
+      );
+    });
   }
 
   Rect? get _selectedRect {
