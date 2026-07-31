@@ -274,9 +274,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     return completer.future;
   }
 
-  // Adjusts a rect to match the transformation controller's scene.
+  // Adjusts a rect to match the scene of the given index.
   // Intended to make a selector rect match an InteractiveViewer's pan or zoom.
-  Rect _transformRect(Rect rect, TransformationController controller) {
+  Rect _transformRect(Rect rect, int index) {
+    TransformationController controller = _transformationControllers[index];
     Offset topLeft = rect.topLeft;
     Offset bottomRight = rect.bottomRight;
     return Rect.fromPoints(
