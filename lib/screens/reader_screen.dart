@@ -124,8 +124,15 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               isActive: _selectorActive,
                               constraints: constraints,
                               onSelectionFinished: (rect) async {
-                                final cropRect = await
-                                _selectionRectToCropRect(context, readerState.currentIndex, rect, Size(constraints.maxWidth, constraints.maxHeight));
+                                final cropRect = await _selectionRectToCropRect(
+                                  context,
+                                  readerState.currentIndex,
+                                  rect,
+                                  Size(
+                                    constraints.maxWidth,
+                                    constraints.maxHeight,
+                                  ),
+                                );
                                 setState(() {
                                   _selectorActive = false;
                                   print(cropRect);
@@ -234,11 +241,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   // [selectionRect] is the selection area, received from RectangleSelector.
   // [widgetSize] is the size of the image container, get from LayoutBuilder.
   Future<Rect> _selectionRectToCropRect(
-      BuildContext context,
-      int index,
-      Rect selectionRect,
-      Size widgetSize,
-      ) async {
+    BuildContext context,
+    int index,
+    Rect selectionRect,
+    Size widgetSize,
+  ) async {
     Size imageSize = await _getImageSize(context, index);
 
     Rect transformedRect = _transformRect(selectionRect, index);
@@ -339,10 +346,10 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   // displayRect is the Rect of the image display, use _getDisplayRect for it.
   // adjustedSelection is selectionRect after transformRect and intersected.
   Rect _getCropRect(
-      Size imageSize,
-      Rect displayRect,
-      Rect adjustedSelectionRect
-      ){
+    Size imageSize,
+    Rect displayRect,
+    Rect adjustedSelectionRect,
+  ) {
     // Adjust margins to be relative to displayRect instead of parent
     final left = adjustedSelectionRect.left - displayRect.left;
     final right = adjustedSelectionRect.right - displayRect.left;
