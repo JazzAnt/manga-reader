@@ -98,45 +98,41 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
           child: reader.when(
             data: (readerState) => readerState == null
                 ? Text("Reader State is Null") //TODO: Custom screen for null
-                : Stack(
-                    children: [
-                      ReaderWidget(
-                        pageController: _pageController,
-                        transformationControllers: _transformationControllers,
-                        onPageChange: _onPageChange,
-                        goToPageIndex: _goToPageIndex,
-                        activateSelector: () {
-                          setState(() {
-                            _selectorActive = true;
-                          });
-                        },
-                        manga: readerState.manga,
-                        currentIndex: readerState.currentIndex,
-                        showIndicator: _showIndicator,
-                        isOnDesktop: _isOnDesktop,
-                      ),
-                      IgnorePointer(
-                        ignoring: !_selectorActive,
-                        child: RectangleSelector(
-                          isActive: _selectorActive,
-                          onSelectionFinished: (rect) {
-                            setState(() {
-                              _selectorActive = false;
-                              print(rect.toString());
-                              print(
-                                _transformRect(
-                                  rect,
-                                  _transformationControllers[readerState.currentIndex]
-                                ).toString()
-                              );
-                              _getImageSize(context, readerState.currentIndex).then(
-                                  (size) {print(size.toString());}
-                              );
-                            });
-                          },
-                        ),
-                      ),
-                    ],
+                : LayoutBuilder(
+                    builder: (builder, constraints) {
+                      return Stack(
+                        children: [
+                          ReaderWidget(
+                            pageController: _pageController,
+                            transformationControllers:
+                                _transformationControllers,
+                            onPageChange: _onPageChange,
+                            goToPageIndex: _goToPageIndex,
+                            activateSelector: () {
+                              setState(() {
+                                _selectorActive = true;
+                              });
+                            },
+                            manga: readerState.manga,
+                            currentIndex: readerState.currentIndex,
+                            showIndicator: _showIndicator,
+                            isOnDesktop: _isOnDesktop,
+                          ),
+                          IgnorePointer(
+                            ignoring: !_selectorActive,
+                            child: RectangleSelector(
+                              isActive: _selectorActive,
+                              constraints: constraints,
+                              onSelectionFinished: (rect) {
+                                setState(() {
+                                  _selectorActive = false;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
             // TODO: Custom Loading Screen?
             loading: () => Center(child: CircularProgressIndicator()),
@@ -247,29 +243,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     // Retrieve the ImageStream from MemoryImage. As in fetch it from the cache
     // or create the ImageCache if none is found.
     final ImageStream imageStream = provider.resolve(
-        createLocalImageConfiguration(context)
+      createLocalImageConfiguration(context),
     );
 
     // Listener that handles the ImageStream
     late final ImageStreamListener listener;
     listener = ImageStreamListener(
-        (ImageInfo imageInfo, bool _){
-          // If listener has listened, just remove it to prevent memory leak.
-          // We do this because we only need to listen to it once.
-          imageStream.removeListener(listener);
+      (ImageInfo imageInfo, bool _) {
+        // If listener has listened, just remove it to prevent memory leak.
+        // We do this because we only need to listen to it once.
+        imageStream.removeListener(listener);
 
-          // Retrieve size from ImageInfo
-          final Size imageSize = Size(
-            imageInfo.image.width.toDouble(),
-            imageInfo.image.height.toDouble(),
-          );
-          // This resolves Future<Size>
-          completer.complete(imageSize);
-        },
-      onError: (error, stackTrace){
-          imageStream.removeListener(listener);
-          completer.completeError(error, stackTrace);
-      }
+        // Retrieve size from ImageInfo
+        final Size imageSize = Size(
+          imageInfo.image.width.toDouble(),
+          imageInfo.image.height.toDouble(),
+        );
+        // This resolves Future<Size>
+        completer.complete(imageSize);
+      },
+      onError: (error, stackTrace) {
+        imageStream.removeListener(listener);
+        completer.completeError(error, stackTrace);
+      },
     );
 
     // Attach listener to imageStream
@@ -280,12 +276,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   // Adjusts a rect to match the transformation controller's scene.
   // Intended to make a selector rect match an InteractiveViewer's pan or zoom.
-  Rect _transformRect(Rect rect, TransformationController controller){
+  Rect _transformRect(Rect rect, TransformationController controller) {
     Offset topLeft = rect.topLeft;
     Offset bottomRight = rect.bottomRight;
     return Rect.fromPoints(
-        controller.toScene(topLeft),
-        controller.toScene(bottomRight)
+      controller.toScene(topLeft),
+      controller.toScene(bottomRight),
     );
   }
 
