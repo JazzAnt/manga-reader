@@ -21,7 +21,8 @@ class ReaderScreen extends ConsumerStatefulWidget {
 }
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
-  late PageController _controller;
+  late PageController _pageController;
+  final List<TransformationController> _transformationControllers = [];
   final FocusNode _focusNode = FocusNode();
   bool _startingPageHandled = false;
   bool _showIndicator = false;
@@ -31,7 +32,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = PageController();
+    _pageController = PageController();
     // TODO: Memorize latest page when user leaves reader while reading manga
 
     // Triggers when provider is updated
@@ -40,12 +41,22 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       if (_startingPageHandled) return;
 
       next.whenData((reader) {
-        // Waits until PageView exists
+        // do nothing if reader null
+        if (reader == null) return;
+
+        // Populate tControllers once pageCount is known
+        for (int i = 0; i < reader.manga.pageCount; i++) {
+          _transformationControllers.add(TransformationController());
+        }
+
+        // Precache images
+        _precacheImageAround(reader.currentIndex);
+
+        // Waits until PageView exists for pageController jump
         WidgetsBinding.instance.addPostFrameCallback((_) {
           // Waits until controller has clients (PageView)
-          if (_controller.hasClients && reader != null) {
-            _controller.jumpToPage(reader.currentIndex);
-            _precacheImageAround(reader.currentIndex);
+          if (_pageController.hasClients) {
+            _pageController.jumpToPage(reader.currentIndex);
             _startingPageHandled = true;
 
             //TODO Remove these test functions
@@ -62,9 +73,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pageController.dispose();
     _focusNode.dispose();
     _showIndicatorTimer?.cancel();
+    for (TransformationController controller in _transformationControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -87,7 +101,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                 : Stack(
                     children: [
                       ReaderWidget(
-                        controller: _controller,
+                        pageController: _pageController,
+                        transformationControllers: _transformationControllers,
                         onPageChange: _onPageChange,
                         goToPageIndex: _goToPageIndex,
                         activateSelector: () {
@@ -164,7 +179,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         .isIndexWithinBounds(targetIndex);
     if (!indexValid) return;
 
-    _controller.animateToPage(
+    _pageController.animateToPage(
       targetIndex,
       duration: Duration(milliseconds: 333),
       curve: Curves.easeInOut,
@@ -217,7 +232,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
 /// Widget to show the Manga along with controller UI elements.
 class ReaderWidget extends StatelessWidget {
-  final PageController controller;
+  final PageController pageController;
+  final List<TransformationController> transformationControllers;
   final void Function(int) onPageChange;
   final void Function(int) goToPageIndex;
   final void Function() activateSelector;
@@ -230,7 +246,8 @@ class ReaderWidget extends StatelessWidget {
 
   const ReaderWidget({
     super.key,
-    required this.controller,
+    required this.pageController,
+    required this.transformationControllers,
     required this.onPageChange,
     required this.goToPageIndex,
     required this.activateSelector,
@@ -251,7 +268,7 @@ class ReaderWidget extends StatelessWidget {
             // desktop reader change from wide to narrow. The $manga.title
             // makes sure keys aren't reused when changing between books.
             key: PageStorageKey("reader_${manga.title}"),
-            controller: controller,
+            controller: pageController,
             onPageChanged: (index) {
               onPageChange(index);
             },
@@ -260,6 +277,7 @@ class ReaderWidget extends StatelessWidget {
             itemCount: manga.pageCount,
             itemBuilder: (context, index) {
               return InteractiveViewer(
+                transformationController: transformationControllers[index],
                 child: Image(
                   image: MemoryImage(manga.pages[index].imageBytes),
                   fit: BoxFit.contain,
