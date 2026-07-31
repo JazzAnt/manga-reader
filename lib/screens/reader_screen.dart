@@ -123,6 +123,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             setState(() {
                               _selectorActive = false;
                               print(rect.toString());
+                              print(
+                                _transformRect(
+                                  rect,
+                                  _transformationControllers[readerState.currentIndex]
+                                ).toString()
+                              );
                             });
                           },
                         ),
@@ -217,6 +223,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       // Pre-cache image in index [i]
       precacheImage(MemoryImage(pages[i].imageBytes), context);
     }
+  }
+
+  // Adjusts a rect to match the transformation controller's scene.
+  // Intended to make a selector rect match an InteractiveViewer's pan or zoom.
+  Rect _transformRect(Rect rect, TransformationController controller){
+    Offset topLeft = rect.topLeft;
+    Offset bottomRight = rect.bottomRight;
+    return Rect.fromPoints(
+        controller.toScene(topLeft),
+        controller.toScene(bottomRight)
+    );
   }
 
   // return true only if on native desktop apps. false if web or mobile.
