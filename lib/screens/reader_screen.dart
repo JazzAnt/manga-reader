@@ -129,6 +129,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                   _transformationControllers[readerState.currentIndex]
                                 ).toString()
                               );
+                              _getImageSize(context, readerState.currentIndex).then(
+                                  (size) {print(size.toString());}
+                              );
                             });
                           },
                         ),
@@ -223,6 +226,56 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       // Pre-cache image in index [i]
       precacheImage(pages[i].memoryImage, context);
     }
+  }
+
+  // Returns a Size(width, height) if the image on the given index.
+  // Seems like a complex function for a simple functionality, but doing it
+  // this way ensures the function reuses the ImageCache and doesn't have to
+  // recreate the image just to know the size.
+  Future<Size> _getImageSize(BuildContext context, int index) async {
+    final reader = ref.read(readerProvider).value;
+    // throw Exception if reader is null because it's unlikely to happen and
+    // I don't want the return to be nullable just for this unlikely event
+    if (reader == null) throw Exception("getImageSize reader is null!");
+
+    // Reuse the MemoryImage stored in MangaPage
+    final ImageProvider provider = reader.manga.pages[index].memoryImage;
+
+    // Completer is used to manually fulfill Future since listener uses callback
+    final Completer<Size> completer = Completer<Size>();
+
+    // Retrieve the ImageStream from MemoryImage. As in fetch it from the cache
+    // or create the ImageCache if none is found.
+    final ImageStream imageStream = provider.resolve(
+        createLocalImageConfiguration(context)
+    );
+
+    // Listener that handles the ImageStream
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+        (ImageInfo imageInfo, bool _){
+          // If listener has listened, just remove it to prevent memory leak.
+          // We do this because we only need to listen to it once.
+          imageStream.removeListener(listener);
+
+          // Retrieve size from ImageInfo
+          final Size imageSize = Size(
+            imageInfo.image.width.toDouble(),
+            imageInfo.image.height.toDouble(),
+          );
+          // This resolves Future<Size>
+          completer.complete(imageSize);
+        },
+      onError: (error, stackTrace){
+          imageStream.removeListener(listener);
+          completer.completeError(error, stackTrace);
+      }
+    );
+
+    // Attach listener to imageStream
+    imageStream.addListener(listener);
+    // This returns the Future<Size>, which is handled with completer.
+    return completer.future;
   }
 
   // Adjusts a rect to match the transformation controller's scene.
