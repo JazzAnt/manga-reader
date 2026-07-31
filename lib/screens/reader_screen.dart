@@ -119,13 +119,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         ignoring: !_selectorActive,
                         child: RectangleSelector(
                           isActive: _selectorActive,
-                          onSelectionFinished: () {
+                          onSelectionFinished: (rect) {
                             setState(() {
                               _selectorActive = false;
+                              print(rect.toString());
                             });
-                          },
-                          onSelectionChanged: (rect) {
-                            if (rect == null) return;
                           },
                         ),
                       ),

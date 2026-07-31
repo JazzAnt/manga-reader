@@ -5,26 +5,18 @@ import 'package:manga_reader/widgets/selection_painter.dart';
 class RectangleSelector extends StatefulWidget {
   const RectangleSelector({
     super.key,
-    required this.onSelectionChanged,
     required this.isActive,
     this.onSelectionFinished = RectangleSelector._doNothing
   });
 
-  /// Called whenever the selected rectangle changes.
-  ///
-  /// Returns [Rect] with the coordinates of the selection rectangle.
-  /// Coordinates are relative to this widget's container, not absolute.
-  /// Returns null if currently not selecting a rectangle (pointer is up).
-  final ValueChanged<Rect?> onSelectionChanged;
-
   /// Called when the selection is complete (onPointerUp).
-  final VoidCallback onSelectionFinished;
+  final ValueChanged<Rect> onSelectionFinished;
 
   /// If false, the selectors doesn't function.
   final bool isActive;
 
   /// Do nothing. The default function for void callbacks.
-  static void _doNothing(){}
+  static void _doNothing(Rect _){}
 
   @override
   State<RectangleSelector> createState() => _RectangleSelectorState();
@@ -62,7 +54,6 @@ class _RectangleSelectorState extends State<RectangleSelector> {
           );
           setState(() {
             _currentPosition = pos;
-            widget.onSelectionChanged(_liveRect);
           });
         },
         onPointerUp: (event) {
@@ -71,7 +62,9 @@ class _RectangleSelectorState extends State<RectangleSelector> {
             _selectedRect = _liveRect;
             _startPosition = null;
             _currentPosition = null;
-            widget.onSelectionFinished();
+            if (_selectedRect != null) {
+              widget.onSelectionFinished(_selectedRect!);
+            }
           });
         },
         child: CustomPaint(
