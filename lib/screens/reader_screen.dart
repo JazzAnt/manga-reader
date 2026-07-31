@@ -285,6 +285,26 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
+  // Gets the display image rect, which is the rect of the image after being
+  // imposed to the Image() using BoxFit.contain
+  Rect _getDisplayRect(Size imageSize, Size widgetSize) {
+    // This gets the size of the image when imposed into a widgetSize sized
+    // widget using BoxFit.contain
+    // (if BoxFit type is changed remember to change this)
+    final Size displaySize = applyBoxFit(
+      .contain,
+      imageSize,
+      widgetSize,
+    ).destination;
+
+    // Get left and top margin from the difference between display and widget
+    final left = (widgetSize.width - displaySize.width) / 2;
+    final top = (widgetSize.height - displaySize.height) / 2;
+
+    // Return the display rect from the margins and size
+    return Rect.fromLTWH(left, top, displaySize.width, displaySize.height);
+  }
+
   // return true only if on native desktop apps. false if web or mobile.
   bool get _isOnDesktop =>
       !kIsWeb &&
