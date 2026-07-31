@@ -123,7 +123,8 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             child: RectangleSelector(
                               isActive: _selectorActive,
                               constraints: constraints,
-                              onSelectionFinished: (rect) {
+                              onSelectionFinished: (rect) async {
+
                                 setState(() {
                                   _selectorActive = false;
                                 });
@@ -304,6 +305,36 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     // Return the display rect from the margins and size
     return Rect.fromLTWH(left, top, displaySize.width, displaySize.height);
+  }
+
+  // Gets the Rect of the selection area imposed to the actual image pixels.
+  // displayRect is the Rect of the image display, use _getDisplayRect for it.
+  // adjustedSelection is selectionRect after transformRect and intersected.
+  Rect _getCropRect(
+      Size imageSize,
+      Rect displayRect,
+      Rect adjustedSelectionRect
+      ){
+    // Adjust margins to be relative to displayRect instead of parent
+    final left = adjustedSelectionRect.left - displayRect.left;
+    final right = adjustedSelectionRect.right - displayRect.left;
+    final top = adjustedSelectionRect.top - displayRect.top;
+    final bottom = adjustedSelectionRect.bottom - displayRect.top;
+
+    // Convert to percentages relative to displayRect;
+    final leftPercent = left / displayRect.width;
+    final rightPercent = right / displayRect.width;
+    final topPercent = top / displayRect.height;
+    final bottomPercent = bottom / displayRect.height;
+
+    // Use percentages with imageSize to get the true pixel margins of the rect.
+    final leftPixels = leftPercent * imageSize.width;
+    final rightPixels = rightPercent * imageSize.width;
+    final topPixels = topPercent * imageSize.height;
+    final bottomPixels = bottomPercent * imageSize.height;
+
+    // Create a rect with the pixel size margins
+    return Rect.fromLTRB(leftPixels, topPixels, rightPixels, bottomPixels);
   }
 
   // return true only if on native desktop apps. false if web or mobile.
