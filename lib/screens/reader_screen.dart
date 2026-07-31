@@ -124,9 +124,11 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                               isActive: _selectorActive,
                               constraints: constraints,
                               onSelectionFinished: (rect) async {
-
+                                final cropRect = await
+                                _selectionRectToCropRect(context, readerState.currentIndex, rect, Size(constraints.maxWidth, constraints.maxHeight));
                                 setState(() {
                                   _selectorActive = false;
+                                  print(cropRect);
                                 });
                               },
                             ),
@@ -223,6 +225,32 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       // Pre-cache image in index [i]
       precacheImage(pages[i].memoryImage, context);
     }
+  }
+
+  // Turns selection rect to crop rect, which corresponds to the actual image.
+  // This functions combines several other functions to hopefully abstract this
+  // awfully complicated process. See each function to understand each step.
+  // [index] is index of the image
+  // [selectionRect] is the selection area, received from RectangleSelector.
+  // [widgetSize] is the size of the image container, get from LayoutBuilder.
+  Future<Rect> _selectionRectToCropRect(
+      BuildContext context,
+      int index,
+      Rect selectionRect,
+      Size widgetSize,
+      ) async {
+    Size imageSize = await _getImageSize(context, index);
+
+    Rect transformedRect = _transformRect(selectionRect, index);
+    Rect displayRect = _getDisplayRect(imageSize, widgetSize);
+    Rect adjustedSelectionRect = transformedRect.intersect(displayRect);
+
+    if (adjustedSelectionRect.isEmpty) {
+      throw Exception("Selection not on image");
+    }
+
+    Rect cropRect = _getCropRect(imageSize, displayRect, adjustedSelectionRect);
+    return cropRect;
   }
 
   // Returns a Size(width, height) if the image on the given index.
