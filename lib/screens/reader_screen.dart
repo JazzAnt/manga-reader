@@ -221,7 +221,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       // Skip if [i] is below 0 or above max index
       if (i < 0 || i >= pages.length) continue;
       // Pre-cache image in index [i]
-      precacheImage(MemoryImage(pages[i].imageBytes), context);
+      precacheImage(pages[i].memoryImage, context);
     }
   }
 
@@ -294,7 +294,7 @@ class ReaderWidget extends StatelessWidget {
               return InteractiveViewer(
                 transformationController: transformationControllers[index],
                 child: Image(
-                  image: MemoryImage(manga.pages[index].imageBytes),
+                  image: manga.pages[index].memoryImage,
                   fit: BoxFit.contain,
                   //TODO: allow user to choose between contain, fitH, fitW
                 ),
