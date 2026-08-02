@@ -27,7 +27,7 @@ class ImageService {
     int x = cropRect.left.clamp(0, srcImage.width - 1).toInt();
     int y = cropRect.top.clamp(0, srcImage.height - 1).toInt();
     int width = cropRect.width.clamp(0, srcImage.width - 1).toInt();
-    int height = cropRect.width.clamp(0, srcImage.height - 1).toInt();
+    int height = cropRect.height.clamp(0, srcImage.height - 1).toInt();
 
     if (width == 0 || height == 0) {
       throw Exception("cropRect has invalid height or width");
