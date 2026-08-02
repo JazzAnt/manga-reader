@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,8 +8,8 @@ import 'package:manga_reader/models/manga.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
 import 'package:manga_reader/widgets/hover_wrapper.dart';
 import 'package:manga_reader/widgets/rectangle_selector.dart';
-
-import '../services/ocr/desktop_ocr.dart';
+import 'package:manga_reader/services/image/selector_service.dart';
+import 'package:manga_reader/services/image/image_service.dart';
 
 /// Screen to display pages of a Manga object.
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -123,20 +122,41 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             child: RectangleSelector(
                               isActive: _selectorActive,
                               constraints: constraints,
-                              onSelectionFinished: (rect) async {
-                                final cropRect = await _selectionRectToCropRect(
-                                  context,
-                                  readerState.currentIndex,
-                                  rect,
-                                  Size(
-                                    constraints.maxWidth,
-                                    constraints.maxHeight,
-                                  ),
-                                );
+                              onSelectionFinished: (selectionRect) async {
                                 setState(() {
                                   _selectorActive = false;
-                                  print(cropRect);
                                 });
+
+                                // TODO:THESE ARE TEST CODES, TO BE REPLACED V
+                                final index = readerState.currentIndex;
+                                final imageSize = await _getImageSize(
+                                  context,
+                                  index,
+                                );
+                                final tfController =
+                                    _transformationControllers[index];
+                                final widgetSize = Size(
+                                  constraints.maxWidth,
+                                  constraints.maxHeight,
+                                );
+
+                                final cropRect = SelectorService()
+                                    .selectionRectToCropRect(
+                                      selectionRect: selectionRect,
+                                      tfController: tfController,
+                                      imageSize: imageSize,
+                                      widgetSize: widgetSize,
+                                    );
+                                print(cropRect);
+
+                                final cropBytes = ImageService().cropImage(
+                                  imageBytes:
+                                      readerState.manga.pages[index].imageBytes,
+                                  cropRect: cropRect,
+                                );
+
+                                print(cropBytes.length);
+                                // TODO:^ THESE ARE TEST CODES, TO BE REPLACED ^
                               },
                             ),
                           ),
@@ -234,32 +254,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     }
   }
 
-  // Turns selection rect to crop rect, which corresponds to the actual image.
-  // This functions combines several other functions to hopefully abstract this
-  // awfully complicated process. See each function to understand each step.
-  // [index] is index of the image
-  // [selectionRect] is the selection area, received from RectangleSelector.
-  // [widgetSize] is the size of the image container, get from LayoutBuilder.
-  Future<Rect> _selectionRectToCropRect(
-    BuildContext context,
-    int index,
-    Rect selectionRect,
-    Size widgetSize,
-  ) async {
-    Size imageSize = await _getImageSize(context, index);
-
-    Rect transformedRect = _transformRect(selectionRect, index);
-    Rect displayRect = _getDisplayRect(imageSize, widgetSize);
-    Rect adjustedSelectionRect = transformedRect.intersect(displayRect);
-
-    if (adjustedSelectionRect.isEmpty) {
-      throw Exception("Selection not on image");
-    }
-
-    Rect cropRect = _getCropRect(imageSize, displayRect, adjustedSelectionRect);
-    return cropRect;
-  }
-
   // Returns a Size(width, height) if the image on the given index.
   // Seems like a complex function for a simple functionality, but doing it
   // this way ensures the function reuses the ImageCache and doesn't have to
@@ -308,68 +302,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     imageStream.addListener(listener);
     // This returns the Future<Size>, which is handled with completer.
     return completer.future;
-  }
-
-  // Adjusts a rect to match the scene of the given index.
-  // Intended to make a selector rect match an InteractiveViewer's pan or zoom.
-  Rect _transformRect(Rect rect, int index) {
-    TransformationController controller = _transformationControllers[index];
-    Offset topLeft = rect.topLeft;
-    Offset bottomRight = rect.bottomRight;
-    return Rect.fromPoints(
-      controller.toScene(topLeft),
-      controller.toScene(bottomRight),
-    );
-  }
-
-  // Gets the display image rect, which is the rect of the image after being
-  // imposed to the Image() using BoxFit.contain
-  Rect _getDisplayRect(Size imageSize, Size widgetSize) {
-    // This gets the size of the image when imposed into a widgetSize sized
-    // widget using BoxFit.contain
-    // (if BoxFit type is changed remember to change this)
-    final Size displaySize = applyBoxFit(
-      .contain,
-      imageSize,
-      widgetSize,
-    ).destination;
-
-    // Get left and top margin from the difference between display and widget
-    final left = (widgetSize.width - displaySize.width) / 2;
-    final top = (widgetSize.height - displaySize.height) / 2;
-
-    // Return the display rect from the margins and size
-    return Rect.fromLTWH(left, top, displaySize.width, displaySize.height);
-  }
-
-  // Gets the Rect of the selection area imposed to the actual image pixels.
-  // displayRect is the Rect of the image display, use _getDisplayRect for it.
-  // adjustedSelection is selectionRect after transformRect and intersected.
-  Rect _getCropRect(
-    Size imageSize,
-    Rect displayRect,
-    Rect adjustedSelectionRect,
-  ) {
-    // Adjust margins to be relative to displayRect instead of parent
-    final left = adjustedSelectionRect.left - displayRect.left;
-    final right = adjustedSelectionRect.right - displayRect.left;
-    final top = adjustedSelectionRect.top - displayRect.top;
-    final bottom = adjustedSelectionRect.bottom - displayRect.top;
-
-    // Convert to percentages relative to displayRect;
-    final leftPercent = left / displayRect.width;
-    final rightPercent = right / displayRect.width;
-    final topPercent = top / displayRect.height;
-    final bottomPercent = bottom / displayRect.height;
-
-    // Use percentages with imageSize to get the true pixel margins of the rect.
-    final leftPixels = leftPercent * imageSize.width;
-    final rightPixels = rightPercent * imageSize.width;
-    final topPixels = topPercent * imageSize.height;
-    final bottomPixels = bottomPercent * imageSize.height;
-
-    // Create a rect with the pixel size margins
-    return Rect.fromLTRB(leftPixels, topPixels, rightPixels, bottomPixels);
   }
 
   // return true only if on native desktop apps. false if web or mobile.
