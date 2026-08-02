@@ -16,7 +16,7 @@ class ImageService {
   Uint8List cropImage({
     required Uint8List imageBytes,
     required Rect cropRect,
-    ImageFormat imageFormat = .webp,
+    ImageFormat imageFormat = .png,
   }) {
     final srcImage = img.decodeImage(imageBytes);
 
@@ -45,11 +45,11 @@ class ImageService {
 
     if (imageFormat == .jpg) {
       croppedEncoded = img.encodeJpg(croppedImage);
-    } else if (imageFormat == .png) {
-      croppedEncoded = img.encodePng(croppedImage);
-    } else {
-      // default to WebP if none is chosen
+    } else if (imageFormat == .webp) {
       croppedEncoded = img.encodeWebP(croppedImage);
+    } else {
+      // default to PNG if none is chosen
+      croppedEncoded = img.encodePng(croppedImage);
     }
 
     return Uint8List.fromList(croppedEncoded);
