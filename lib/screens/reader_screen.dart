@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/manga.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
+import 'package:manga_reader/services/platform/platform_service.dart';
 import 'package:manga_reader/widgets/hover_wrapper.dart';
 import 'package:manga_reader/widgets/rectangle_selector.dart';
 import 'package:manga_reader/services/image/selector_service.dart';
@@ -115,7 +115,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                             manga: readerState.manga,
                             currentIndex: readerState.currentIndex,
                             showIndicator: _showIndicator,
-                            isOnDesktop: _isOnDesktop,
+                            isOnDesktop: isOnDesktop,
                           ),
                           IgnorePointer(
                             ignoring: !_selectorActive,
@@ -303,14 +303,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     // This returns the Future<Size>, which is handled with completer.
     return completer.future;
   }
-
-  // return true only if on native desktop apps. false if web or mobile.
-  bool get _isOnDesktop =>
-      !kIsWeb &&
-      switch (defaultTargetPlatform) {
-        .windows || .linux || .macOS => true,
-        .android || .fuchsia || .iOS => false,
-      };
 }
 
 /// Widget to show the Manga along with controller UI elements.
