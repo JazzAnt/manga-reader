@@ -1,25 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/health_providers/api_health_notifier.dart';
 import 'package:manga_reader/services/platform/platform_service.dart';
 import 'package:http/http.dart' as http;
 
+/// While being watched, this provider periodically checks for the local
+/// MangaOcr Python server's health and exposes a bool that shows the health.
 final mangaOcrHealthProvider = NotifierProvider<MangaOcrHealthNotifier, bool>(
   MangaOcrHealthNotifier.new,
 );
 
-class MangaOcrHealthNotifier extends Notifier<bool> {
-  Timer? _timer;
-
+class MangaOcrHealthNotifier extends ApiHealthNotifier {
   @override
-  bool build() {
-    _startPolling();
-    ref.onDispose(() {
-      _timer?.cancel();
-    });
-    return false;
-  }
-
   Future<void> check() async {
     final Uri url = isOnMobile
         ? Uri.parse("http://10.0.2.2:8000/health")
@@ -31,11 +24,5 @@ class MangaOcrHealthNotifier extends Notifier<bool> {
     } catch (_) {
       state = false;
     }
-  }
-
-  void _startPolling() {
-    check();
-
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) => check());
   }
 }
