@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:manga_reader/models/dictionary_definition.dart';
+import 'package:manga_reader/models/dictionary_entry.dart';
 
 /// Service class to call Jisho API for dictionary.
 ///
@@ -14,17 +16,38 @@ class Jisho {
   ///
   /// [keyword] is the word to look up on the dictionary. If given a sentence,
   /// Jisho will look up the definition of the first word of the sentence.
-  Future<void> call(String keyword) async {
+  Future<List<DictionaryEntry>> call(String keyword) async {
     final Uri url = Uri.parse(baseUrl + Uri.encodeComponent(keyword));
 
     final response = await http.get(url);
+    if (response.statusCode != 200) throw Exception("Jisho call failed");
 
     final json = jsonDecode(response.body);
+    if (json["data"] == null) throw Exception("Jisho returns no data");
+
+    final List<DictionaryEntry> entries = [];
 
     for (final entry in json["data"]) {
-      //TODO: make a custom object to load this
-      final String reading = entry['japanese'][0]['reading'];
-      final String definition = entry['senses'][0]['english_definitions'][0];
+      // Get word and reading
+      final japanese = entry['japanese'][0];
+      // if word doesn't exist (no kanji) default to reading
+      final String word = japanese['word'] ?? japanese['reading'];
+      final String reading = japanese['reading'];
+
+      // Get definitions
+      final List<DictionaryDefinition> definitions = [];
+      for (final sense in entry['senses']) {
+        final String pos = sense['parts_of_speech'][0];
+        final String info = sense['infp'][0] ?? "";
+        final List<String> englishDefinitions = [];
+        for (final englishDefinition in sense['english_definitions']) {
+          englishDefinitions.add(englishDefinition);
+        }
+
+        definitions.add(DictionaryDefinition(pos, englishDefinitions, info));
+      }
+      entries.add(DictionaryEntry(word, reading, definitions));
     }
+    return entries;
   }
 }
