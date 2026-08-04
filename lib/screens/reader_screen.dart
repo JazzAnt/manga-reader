@@ -45,11 +45,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         // do nothing if reader null
         if (reader == null) return;
 
-        // Populate tControllers once pageCount is known
-        for (int i = 0; i < reader.manga.pageCount; i++) {
-          _transformationControllers.add(TransformationController());
-        }
-
         // Precache images
         _precacheImageAround(reader.currentIndex);
 
@@ -97,77 +92,91 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         child: Padding(
           padding: EdgeInsetsGeometry.all(16),
           child: reader.when(
-            data: (readerState) => readerState == null
-                ? Text("Reader State is Null") //TODO: Custom screen for null
-                : LayoutBuilder(
-                    builder: (builder, constraints) {
-                      return Stack(
-                        children: [
-                          ReaderWidget(
-                            pageController: _pageController,
-                            transformationControllers:
-                                _transformationControllers,
-                            onPageChange: _onPageChange,
-                            goToPageIndex: _goToPageIndex,
-                            activateSelector: () {
-                              setState(() {
-                                _selectorActive = true;
-                              });
-                            },
-                            manga: readerState.manga,
-                            currentIndex: readerState.currentIndex,
-                            showIndicator: _showIndicator,
-                            isOnDesktop: isOnDesktop,
-                          ),
-                          IgnorePointer(
-                            ignoring: !_selectorActive,
-                            child: RectangleSelector(
-                              isActive: _selectorActive,
-                              constraints: constraints,
-                              onSelectionFinished: (selectionRect) async {
-                                setState(() {
-                                  _selectorActive = false;
-                                });
+            data: (readerState) {
+              // TODO: custom null screen
+              if (readerState == null) return Text("Reader State is Null");
 
-                                final index = readerState.currentIndex;
-                                final imageSize = await _getImageSize(
-                                  context,
-                                  index,
-                                );
-                                final tfController =
-                                    _transformationControllers[index];
-                                final widgetSize = Size(
-                                  constraints.maxWidth,
-                                  constraints.maxHeight,
-                                );
-
-                                final cropRect = SelectorService()
-                                    .selectionRectToCropRect(
-                                      selectionRect: selectionRect,
-                                      tfController: tfController,
-                                      imageSize: imageSize,
-                                      widgetSize: widgetSize,
-                                    );
-
-                                final cropBytes = ImageService().cropImage(
-                                  imageBytes:
-                                      readerState.manga.pages[index].imageBytes,
-                                  cropRect: cropRect,
-                                );
-
-                                ref
-                                    .read(ocrProvider.notifier)
-                                    .requestOcr(cropBytes);
-                                widget.openDrawer();
-                                //TODO: Maybe move all this somewhere
-                                //TODO: so it's not so bloated
-                              },
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+              // Populate TransformationControllers
+              final controllerCount = _transformationControllers.length;
+              final pageCount = readerState.manga.pageCount;
+              if (controllerCount < pageCount) {
+                _transformationControllers.addAll(
+                  List.generate(
+                    pageCount - controllerCount,
+                    (_) => TransformationController(),
                   ),
+                );
+              }
+
+              return LayoutBuilder(
+                builder: (builder, constraints) {
+                  return Stack(
+                    children: [
+                      ReaderWidget(
+                        pageController: _pageController,
+                        transformationControllers: _transformationControllers,
+                        onPageChange: _onPageChange,
+                        goToPageIndex: _goToPageIndex,
+                        activateSelector: () {
+                          setState(() {
+                            _selectorActive = true;
+                          });
+                        },
+                        manga: readerState.manga,
+                        currentIndex: readerState.currentIndex,
+                        showIndicator: _showIndicator,
+                        isOnDesktop: isOnDesktop,
+                      ),
+                      IgnorePointer(
+                        ignoring: !_selectorActive,
+                        child: RectangleSelector(
+                          isActive: _selectorActive,
+                          constraints: constraints,
+                          onSelectionFinished: (selectionRect) async {
+                            setState(() {
+                              _selectorActive = false;
+                            });
+
+                            final index = readerState.currentIndex;
+                            final imageSize = await _getImageSize(
+                              context,
+                              index,
+                            );
+                            final tfController =
+                                _transformationControllers[index];
+                            final widgetSize = Size(
+                              constraints.maxWidth,
+                              constraints.maxHeight,
+                            );
+
+                            final cropRect = SelectorService()
+                                .selectionRectToCropRect(
+                                  selectionRect: selectionRect,
+                                  tfController: tfController,
+                                  imageSize: imageSize,
+                                  widgetSize: widgetSize,
+                                );
+
+                            final cropBytes = ImageService().cropImage(
+                              imageBytes:
+                                  readerState.manga.pages[index].imageBytes,
+                              cropRect: cropRect,
+                            );
+
+                            ref
+                                .read(ocrProvider.notifier)
+                                .requestOcr(cropBytes);
+                            widget.openDrawer();
+                            //TODO: Maybe move all this somewhere
+                            //TODO: so it's not so bloated
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
             // TODO: Custom Loading Screen?
             loading: () => Center(child: CircularProgressIndicator()),
             // TODO: Custom error screen
@@ -398,7 +407,7 @@ class ReaderWidget extends StatelessWidget {
             //TODO: Better OCR button, maybe with icon even.
             child: ElevatedButton(
               onPressed: activateSelector,
-              child: Text("OCR", style: TextStyle(fontSize: 16),),
+              child: Text("OCR", style: TextStyle(fontSize: 16)),
             ),
           ),
         ),
