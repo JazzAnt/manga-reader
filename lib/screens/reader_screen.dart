@@ -391,9 +391,10 @@ class ReaderWidget extends StatelessWidget {
           alignment: .topRight,
           child: HoverWrapper(
             minOpacity: 0.3,
+            //TODO: Better OCR button, maybe with icon even.
             child: ElevatedButton(
               onPressed: activateSelector,
-              child: Text("OCR"),
+              child: Text("OCR", style: TextStyle(fontSize: 16),),
             ),
           ),
         ),
