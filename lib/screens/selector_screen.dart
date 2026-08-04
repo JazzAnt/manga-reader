@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/providers/ocr_provider.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
 
 import 'package:manga_reader/models/zip.dart';
@@ -26,6 +27,7 @@ class _SelectorScreenState extends ConsumerState<SelectorScreen> {
               return;
             }
             ref.read(readerProvider.notifier).loadManga(file);
+            ref.read(ocrProvider.notifier).clearResult();
 
             // This checks if this Widget still exists after the await from
             // FileReader, making sure Navigator doesn't execute if the
