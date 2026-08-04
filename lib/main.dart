@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:manga_reader/models/manga.dart';
 import 'package:manga_reader/screens/reader_layout_screen.dart';
 import 'package:manga_reader/screens/selector_screen.dart';
-import 'package:manga_reader/services/ocr/ocr_service.dart';
 
-import 'services/ocr/desktop_ocr.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

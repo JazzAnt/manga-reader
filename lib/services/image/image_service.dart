@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:image/image.dart' as img;
-import './image_format.dart';
+import 'package:manga_reader/services/image/image_format.dart';
 
 /// Service class to handle image manipulation.
 class ImageService {

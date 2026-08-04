@@ -4,8 +4,8 @@ import 'dart:isolate';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/zip.dart';
 
-import '../models/manga.dart';
-import '../services/manga/zip_handler.dart';
+import 'package:manga_reader/models/manga.dart';
+import 'package:manga_reader/services/manga/zip_handler.dart';
 
 /// Provides data, mainly for Reader Screen
 final readerProvider = AsyncNotifierProvider<ReaderNotifier, ReaderState?>(

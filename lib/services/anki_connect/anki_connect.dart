@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import '../platform/platform_service.dart';
+import 'package:manga_reader/services/platform/platform_service.dart';
 import 'package:http/http.dart' as http;
 
 /// Service class to handle making calls to AnkiConnect API.

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 
-import '../../models/zip.dart';
+import 'package:manga_reader/models/zip.dart';
 
 /// Service class for handling files using File Picker library.
 class FileReader {

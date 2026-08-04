@@ -2,9 +2,9 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:mime/mime.dart';
 
-import '../../models/manga.dart';
-import '../../models/manga_page.dart';
-import '../../models/zip.dart';
+import 'package:manga_reader/models/manga.dart';
+import 'package:manga_reader/models/manga_page.dart';
+import 'package:manga_reader/models/zip.dart';
 
 /// Service class to handle zip files. Most functions here require a
 /// [Zip] object that can be obtained from `FileReader.selectZip()`.
@@ -49,7 +49,7 @@ class ZipHandler {
     Archive archive = ZipDecoder().decodeBytes(zipFile.bytes);
     for (ArchiveFile file in archive) {
       if (file.isFile) {
-        print("(ZIPREADER)" + file.name);
+        print("(ZIPREADER)${file.name}");
       }
     }
   }

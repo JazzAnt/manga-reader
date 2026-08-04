@@ -1,4 +1,4 @@
-import './manga_page.dart';
+import 'package:manga_reader/models/manga_page.dart';
 
 /// Represents a manga book.
 /// Main purpose is to carry a list of [MangaPage].

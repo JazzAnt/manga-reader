@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
 
-import '../models/zip.dart';
-import '../services/manga/file_reader.dart';
+import 'package:manga_reader/models/zip.dart';
+import 'package:manga_reader/services/manga/file_reader.dart';
 
 /// Has a button that opens a file picker and redirects to reader screen.
 /// Mostly placeholder screen for testing, will either be updated or
