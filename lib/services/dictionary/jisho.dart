@@ -28,24 +28,39 @@ class Jisho {
     final List<DictionaryEntry> entries = [];
 
     for (final entry in json["data"]) {
-      // Get word and reading
-      final japanese = entry['japanese'][0];
+      // If somehow there's no Japanese entry just skip it
+      final japanese = entry['japanese'] as List? ?? [];
+      if (japanese.isEmpty) continue;
       // if word doesn't exist (no kanji) default to reading
-      final String word = japanese['word'] ?? japanese['reading'];
-      final String reading = japanese['reading'];
+      final String word = japanese[0]['word'] ?? japanese[0]['reading'];
+      final String reading = japanese[0]['reading'];
 
-      // Get definitions
+      // If somehow there's no senses then just skip it
+      final senses = entry['senses'] as List? ?? [];
+      if (senses.isEmpty) continue;
+
       final List<DictionaryDefinition> definitions = [];
       for (final sense in entry['senses']) {
-        final String pos = sense['parts_of_speech'][0];
-        final String info = sense['infp'][0] ?? "";
+        // If somehow there's no definition entry just skip it
+        final defList = sense['english_definitions'] as List? ?? [];
+        if (defList.isEmpty) continue;
+
         final List<String> englishDefinitions = [];
-        for (final englishDefinition in sense['english_definitions']) {
+        for (final englishDefinition in defList) {
           englishDefinitions.add(englishDefinition);
         }
 
+        final posList = sense['parts_of_speech'] as List? ?? [];
+        final String pos = posList.isNotEmpty ? posList[0] : "Unknown POS";
+
+        final infoList = sense['info'] as List? ?? [];
+        final String info = infoList.isNotEmpty ? infoList[0] : "";
+
         definitions.add(DictionaryDefinition(pos, englishDefinitions, info));
       }
+      // If somehow there's no definition at all, just skip it
+      if (definitions.isEmpty) continue;
+
       entries.add(DictionaryEntry(word, reading, definitions));
     }
     return entries;
