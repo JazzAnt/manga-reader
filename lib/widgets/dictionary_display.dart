@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:manga_reader/models/dictionary_definition.dart';
 import 'package:manga_reader/models/dictionary_entry.dart';
 
+/// Widget to display DictionaryEntry data.
 class DictionaryDisplay extends StatelessWidget {
   const DictionaryDisplay({super.key, required this.dictionaryEntry});
   final DictionaryEntry dictionaryEntry;

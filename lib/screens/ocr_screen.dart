@@ -4,10 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/dictionary_entry.dart';
-import 'package:manga_reader/models/ocr_result.dart';
 import 'package:manga_reader/providers/ocr_provider.dart';
 import 'package:manga_reader/services/dictionary/dictionary_service.dart';
-import 'package:manga_reader/widgets/DictionaryDisplay.dart';
+import 'package:manga_reader/widgets/dictionary_display.dart';
 
 /// This is a placeholder to be placed where the OCR screen will be eventually
 class OcrScreen extends ConsumerStatefulWidget {
