@@ -20,8 +20,7 @@ class DictionaryDisplay extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: .center,
+            Wrap(
               children: [
                 Text(
                   dictionaryEntry.word,
