@@ -27,86 +27,104 @@ class _OcrScreenState extends ConsumerState<OcrScreen> {
     final ocrResult = ref.watch(ocrProvider).value;
     final recognizedText = ocrResult?.text ?? "";
     return Padding(
-      padding: .all(10),
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.lightBlueAccent,
-              border: .all(color: CupertinoColors.activeBlue, width: 2),
-              borderRadius: .circular(6),
-            ),
-            child: SelectionArea(
-              child: Text(
-                recognizedText,
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+      padding: .fromLTRB(0, 50, 0, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: CupertinoColors.darkBackgroundGray.withValues(alpha: 0.75),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.lightBlueAccent,
+                border: .all(color: CupertinoColors.activeBlue, width: 2),
+                borderRadius: .circular(6),
               ),
-              onSelectionChanged: (selection) {
-                _selectionDelay?.cancel();
+              child: Center(
+                child: SelectionArea(
+                  child: Text(
+                    recognizedText,
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                  ),
+                  onSelectionChanged: (selection) {
+                    _selectionDelay?.cancel();
 
-                final keyword = selection?.plainText;
-                if (keyword == null || keyword.isEmpty) {
-                  setState(() {
-                    _entries = [];
-                    _placeholderText = "Awaiting Selection";
-                    _lookingUp = false;
-                  });
-                  return;
-                }
-
-                setState(() {
-                  _entries = []; // To remove previous entries.
-                  _placeholderText = "Looking up 「$keyword」";
-                  _lookingUp = true;
-                });
-
-                // Selection finalized if selection has stopped for more than 350ms
-                _selectionDelay = Timer(
-                  const Duration(milliseconds: 350),
-                  () async {
-                    final entries = await DictionaryService().lookup(keyword);
-                    if (!mounted) return;
+                    final keyword = selection?.plainText;
+                    if (keyword == null || keyword.isEmpty) {
+                      setState(() {
+                        _entries = [];
+                        _placeholderText = "Awaiting Selection";
+                        _lookingUp = false;
+                      });
+                      return;
+                    }
 
                     setState(() {
-                      _entries = entries;
-                      _placeholderText = _entries.isEmpty
-                          ? "Cannot find definition of 「$keyword」"
-                          : "Awaiting Selection";
-                      _lookingUp = false;
+                      _entries = []; // To remove previous entries.
+                      _placeholderText = "Looking up 「$keyword」";
+                      _lookingUp = true;
                     });
+
+                    // Selection finalized if selection has stopped for more than 350ms
+                    _selectionDelay = Timer(
+                      const Duration(milliseconds: 350),
+                      () async {
+                        final entries = await DictionaryService().lookup(
+                          keyword,
+                        );
+                        if (!mounted) return;
+
+                        setState(() {
+                          _entries = entries;
+                          _placeholderText = _entries.isEmpty
+                              ? "Cannot find definition of 「$keyword」"
+                              : "Awaiting Selection";
+                          _lookingUp = false;
+                        });
+                      },
+                    );
                   },
-                );
-              },
+                ),
+              ),
             ),
-          ),
-          Expanded(
-            child: _entries.isNotEmpty
-                ? ListView.builder(
-                    itemCount: _entries.length,
-                    itemBuilder: (context, index) {
-                      return DictionaryDisplay(
-                        dictionaryEntry: _entries[index],
-                      );
-                    },
-                  )
-                : Column(
-                    mainAxisAlignment: .center,
-                    children: [
-                      Text(
-                        _placeholderText,
-                        style: TextStyle(fontWeight: .bold, fontSize: 30),
+            Expanded(
+              child: _entries.isNotEmpty
+                  ? ListView.builder(
+                      itemCount: _entries.length,
+                      itemBuilder: (context, index) {
+                        return DictionaryDisplay(
+                          dictionaryEntry: _entries[index],
+                        );
+                      },
+                    )
+                  : Padding(
+                      padding: .all(10),
+                      child: Column(
+                        mainAxisSize: .min,
+                        mainAxisAlignment: .center,
+                        children: [
+                          Text(
+                            _placeholderText,
+                            style: TextStyle(
+                              fontWeight: .bold,
+                              fontSize: 30,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 11),
+                          _lookingUp
+                              ? CircularProgressIndicator(
+                                  strokeWidth: 10,
+                                  color: Colors.lightGreenAccent,
+                                )
+                              : SizedBox.shrink(),
+                        ],
                       ),
-                      SizedBox(height: 11),
-                      _lookingUp
-                          ? CircularProgressIndicator(
-                              strokeWidth: 10,
-                              color: Colors.green,
-                            )
-                          : SizedBox(),
-                    ],
-                  ),
-          ),
-        ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
