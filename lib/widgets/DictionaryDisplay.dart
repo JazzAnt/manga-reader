@@ -83,10 +83,14 @@ class DefinitionDisplay extends StatelessWidget {
                   borderRadius: .circular(5),
                 ),
                 child: Padding(
-                  padding: .all(3),
+                  padding: .all(5),
                   child: Text(
                     dictionaryDefinition.pos,
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: .bold,
+                    ),
                   ),
                 ),
               ),
