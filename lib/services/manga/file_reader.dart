@@ -13,11 +13,11 @@ class FileReader {
     // Opens the file picker dialog for users (limited to zip and cbz)
     FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ["zip", "cbz"]
+      allowedExtensions: ["zip", "cbz"],
     );
 
     // If the user doesn't pick a file (e.g. click cancel), it'll return null
-    if(result == null) return null;
+    if (result == null) return null;
 
     // This throws an error if file is somehow not single.
     PlatformFile file = result.files.single;

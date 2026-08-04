@@ -4,6 +4,10 @@ import 'package:manga_reader/providers/reader_provider.dart';
 import 'package:manga_reader/screens/reader_screen.dart';
 import 'package:manga_reader/services/platform/platform_service.dart';
 
+/// Widget that holds both ReaderScreen and OcrScreen.
+/// Layout depends on platform. If on desktop and wide then shows them
+/// side-by-side. If on desktop and narrow or if on mobile, show only
+/// ReaderScreen while OcrScreen is stored in an endDrawer.
 class ReaderLayoutScreen extends ConsumerWidget {
   const ReaderLayoutScreen({super.key});
 

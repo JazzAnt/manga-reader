@@ -20,23 +20,23 @@ class _SelectorScreenState extends ConsumerState<SelectorScreen> {
     return Scaffold(
       body: Center(
         child: ElevatedButton(
-            onPressed: () async {
-              Zip? file = await FileReader().selectZip();
-              if (file == null){
-                return;
-              }
-              ref.read(readerProvider.notifier).loadManga(file);
+          onPressed: () async {
+            Zip? file = await FileReader().selectZip();
+            if (file == null) {
+              return;
+            }
+            ref.read(readerProvider.notifier).loadManga(file);
 
-              // This checks if this Widget still exists after the await from
-              // FileReader, making sure Navigator doesn't execute if the
-              // Widget have been dismounted (e.g. user clicks back)
-              if (!context.mounted) return;
+            // This checks if this Widget still exists after the await from
+            // FileReader, making sure Navigator doesn't execute if the
+            // Widget have been dismounted (e.g. user clicks back)
+            if (!context.mounted) return;
 
-              Navigator.pushNamed(context, "/reader");
-            },
-            child: const Text("TEST")),
+            Navigator.pushNamed(context, "/reader");
+          },
+          child: const Text("Select Zip File"),
+        ),
       ),
     );
   }
-
 }

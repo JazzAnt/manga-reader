@@ -2,6 +2,23 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:manga_reader/widgets/selection_painter.dart';
 
+/// This widget provides a selector for the user to drag and choose a selection
+/// area in a widget. It should be stacked on top of the widget you want to be
+/// selection upon. Example:
+/// ``` LayoutBuilder:
+/// return Stack(
+///   children: [
+///     TargetWidget, // usually an Image() or something that nests one
+///     RectangleSelector, // if Target is interactive, wrap with IgnorePointer
+///   ]
+/// )
+/// ```
+///
+/// [isActive] If false, the widget will not perform selection.
+/// [constraints] Used to constrain the selection area, intended to be obtained
+/// by a parent LayoutBuilder.
+/// [onSelectionFinished] Callback function that returns a Rect when selection
+/// is finished.
 class RectangleSelector extends StatefulWidget {
   const RectangleSelector({
     super.key,

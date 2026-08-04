@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
 class SelectorService {
-
   /// Turns selection rect to crop rect, which corresponds to the actual image.
   ///
   /// [selectionRect] is the Rect received from SelectorScreen
@@ -9,14 +8,14 @@ class SelectorService {
   /// holding the Image.
   /// [imageSize] is the size of the image.
   /// [widgetSize] is the size of the image container, get from LayoutBuilder.
-  Rect selectionRectToCropRect(
-    {required Rect selectionRect,
-      required TransformationController tfController,
-      required Size imageSize,
-      required Size widgetSize,
-      BoxFit boxFit = .contain
-    }
-      ) {
+  /// [boxFit] the BoxFit of the Image container. Default is BoxFit.contain.
+  Rect selectionRectToCropRect({
+    required Rect selectionRect,
+    required TransformationController tfController,
+    required Size imageSize,
+    required Size widgetSize,
+    BoxFit boxFit = .contain,
+  }) {
     // This adjusts the selection Rect to match any pan/zoom of the controller
     Rect transformedRect = _transformRect(selectionRect, tfController);
 
@@ -70,10 +69,10 @@ class SelectorService {
   /// displayRect is the Rect of the image display, use _getDisplayRect for it.
   /// adjustedSelection is selectionRect after transformRect and intersected.
   Rect _getCropRect(
-      Size imageSize,
-      Rect displayRect,
-      Rect adjustedSelectionRect,
-      ) {
+    Size imageSize,
+    Rect displayRect,
+    Rect adjustedSelectionRect,
+  ) {
     // Adjust margins to be relative to displayRect instead of parent
     final left = adjustedSelectionRect.left - displayRect.left;
     final right = adjustedSelectionRect.right - displayRect.left;

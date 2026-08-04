@@ -3,7 +3,13 @@ import 'dart:convert';
 import '../platform/platform_service.dart';
 import 'package:http/http.dart' as http;
 
+/// Service class to handle making calls to AnkiConnect API.
 class AnkiConnect {
+  /// Perform an API call to AnkiConnect API. See AnkiConnect's GitHub page
+  /// to see which [action] and [params] that are available.
+  ///
+  /// [action] the action of the API call.
+  /// [params] the parameters that certain API calls need.
   Future<dynamic> call(
     String action, {
     Map<String, dynamic> params = const {},
