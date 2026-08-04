@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/manga.dart';
+import 'package:manga_reader/providers/ocr_provider.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
 import 'package:manga_reader/services/platform/platform_service.dart';
 import 'package:manga_reader/widgets/hover_wrapper.dart';
@@ -127,7 +128,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                   _selectorActive = false;
                                 });
 
-                                // TODO:THESE ARE TEST CODES, TO BE REPLACED V
                                 final index = readerState.currentIndex;
                                 final imageSize = await _getImageSize(
                                   context,
@@ -147,7 +147,6 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                       imageSize: imageSize,
                                       widgetSize: widgetSize,
                                     );
-                                print(cropRect);
 
                                 final cropBytes = ImageService().cropImage(
                                   imageBytes:
@@ -155,8 +154,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                   cropRect: cropRect,
                                 );
 
-                                print(cropBytes.length);
-                                // TODO:^ THESE ARE TEST CODES, TO BE REPLACED ^
+                                ref
+                                    .read(ocrProvider.notifier)
+                                    .requestOcr(cropBytes);
                               },
                             ),
                           ),

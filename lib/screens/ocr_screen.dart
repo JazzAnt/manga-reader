@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/models/dictionary_entry.dart';
+import 'package:manga_reader/models/ocr_result.dart';
+import 'package:manga_reader/providers/ocr_provider.dart';
 import 'package:manga_reader/services/dictionary/dictionary_service.dart';
 import 'package:manga_reader/widgets/DictionaryDisplay.dart';
 
@@ -22,6 +24,8 @@ class _OcrScreenState extends ConsumerState<OcrScreen> {
   Timer? _selectionDelay;
   @override
   Widget build(BuildContext context) {
+    final ocrResult = ref.watch(ocrProvider).value;
+    final recognizedText = ocrResult?.text ?? "";
     return Padding(
       padding: .all(10),
       child: Column(
@@ -34,8 +38,7 @@ class _OcrScreenState extends ConsumerState<OcrScreen> {
             ),
             child: SelectionArea(
               child: Text(
-                //TODO: replace with actual OCR text
-                "私はばかです。でもあなたよりもっとばかすぎる。お前はせかいいちばかにんげん。ばかばかばか",
+                recognizedText,
                 style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
               ),
               onSelectionChanged: (selection) {
