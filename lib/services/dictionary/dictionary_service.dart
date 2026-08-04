@@ -12,6 +12,6 @@ class DictionaryService {
       function would be the only one be changed, the other code can still
       use lookup() with the exact same input and output.
      */
-    return await Jisho().call(keyword);
+    return Jisho().call(keyword);
   }
 }
