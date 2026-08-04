@@ -14,7 +14,8 @@ import 'package:manga_reader/services/image/image_service.dart';
 
 /// Screen to display pages of a Manga object.
 class ReaderScreen extends ConsumerStatefulWidget {
-  const ReaderScreen({super.key});
+  const ReaderScreen({super.key, required this.openDrawer});
+  final VoidCallback openDrawer;
 
   @override
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
@@ -157,6 +158,9 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                                 ref
                                     .read(ocrProvider.notifier)
                                     .requestOcr(cropBytes);
+                                widget.openDrawer();
+                                //TODO: Maybe move all this somewhere
+                                //TODO: so it's not so bloated
                               },
                             ),
                           ),

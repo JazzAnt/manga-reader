@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
       initialRoute: "/",
       routes: {
         "/": (context) => const SelectorScreen(),
-        "/reader": (context) => const ReaderLayoutScreen()
+        "/reader": (context) => ReaderLayoutScreen()
       },
     );
   }

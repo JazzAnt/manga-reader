@@ -12,7 +12,8 @@ import 'package:manga_reader/services/platform/platform_service.dart';
 /// side-by-side. If on desktop and narrow or if on mobile, show only
 /// ReaderScreen while OcrScreen is stored in an endDrawer.
 class ReaderLayoutScreen extends ConsumerWidget {
-  const ReaderLayoutScreen({super.key});
+  ReaderLayoutScreen({super.key});
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,22 +40,32 @@ class ReaderLayoutScreen extends ConsumerWidget {
       );
     }
 
+
+    Widget setupReaderScreen(bool isWideDesktop){
+      //TODO: move all the reader.when stuff in ReaderScreen to here
+      return ReaderScreen(openDrawer: (){
+        if (isWideDesktop) return;
+        scaffoldKey.currentState?.openEndDrawer();
+      });
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // Considered widescreen if width > 900px
         final isWideDesktop = isOnDesktop && constraints.maxWidth > 900;
 
         return Scaffold(
+          key: scaffoldKey,
           appBar: AppBar(title: Text(title)),
           endDrawer: isWideDesktop ? null : setupOcrScreen(),
           body: isWideDesktop
               ? Row(
                   children: [
-                    Expanded(flex: 2, child: ReaderScreen()),
+                    Expanded(flex: 2, child: setupReaderScreen(isWideDesktop)),
                     Expanded(flex: 3, child: setupOcrScreen()),
                   ],
                 )
-              : ReaderScreen(),
+              : setupReaderScreen(isWideDesktop),
         );
       },
     );
