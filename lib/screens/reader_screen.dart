@@ -390,6 +390,7 @@ class ReaderWidget extends StatelessWidget {
         Align(
           alignment: .topRight,
           child: HoverWrapper(
+            minOpacity: 0.3,
             child: ElevatedButton(
               onPressed: activateSelector,
               child: Text("OCR"),
