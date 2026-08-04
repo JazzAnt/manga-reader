@@ -30,7 +30,8 @@ class Jisho {
     for (final entry in json["data"]) {
       // If somehow there's no Japanese entry just skip it
       final japanese = entry['japanese'] as List? ?? [];
-      if (japanese.isEmpty) continue;
+      if (japanese.isEmpty || japanese[0]['reading'] == null) continue;
+
       // if word doesn't exist (no kanji) default to reading
       final String word = japanese[0]['word'] ?? japanese[0]['reading'];
       final String reading = japanese[0]['reading'];
