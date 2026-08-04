@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
+import 'package:manga_reader/screens/ocr_screen.dart';
 import 'package:manga_reader/screens/reader_screen.dart';
 import 'package:manga_reader/services/platform/platform_service.dart';
 
@@ -23,32 +24,17 @@ class ReaderLayoutScreen extends ConsumerWidget {
 
         return Scaffold(
           appBar: AppBar(title: Text(title)),
-          endDrawer: isWideDesktop ? null : OCRScreen(),
+          endDrawer: isWideDesktop ? null : OcrScreen(),
           body: isWideDesktop
               ? Row(
                   children: [
                     Expanded(flex: 2, child: ReaderScreen()),
-                    Expanded(flex: 3, child: OCRScreen()),
+                    Expanded(flex: 3, child: OcrScreen()),
                   ],
                 )
               : ReaderScreen(),
         );
       },
-    );
-  }
-}
-
-/// This is a placeholder to be placed where the OCR screen will be eventually
-class OCRScreen extends ConsumerWidget {
-  const OCRScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ColoredBox(
-      color: Colors.blue,
-      child: Center(
-        child: Text("I AM A PLACEHOLDER", style: TextStyle(color: Colors.red)),
-      ),
     );
   }
 }
