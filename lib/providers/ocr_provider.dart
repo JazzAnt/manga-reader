@@ -22,4 +22,8 @@ class OcrNotifier extends AsyncNotifier<OcrResult?> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() => DesktopOcr().recognizeText(imgBytes));
   }
+
+  void clearResult() {
+    state = AsyncData(null);
+  }
 }
