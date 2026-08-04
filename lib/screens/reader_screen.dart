@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/health_providers/manga_ocr_health_provider.dart';
 import 'package:manga_reader/models/manga.dart';
 import 'package:manga_reader/providers/ocr_provider.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
@@ -81,6 +82,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final reader = ref.watch(readerProvider);
+    final ocrHealth = ref.watch(mangaOcrHealthProvider);
     return Focus(
       focusNode: _focusNode,
       autofocus: true,
@@ -126,6 +128,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
                         currentIndex: readerState.currentIndex,
                         showIndicator: _showIndicator,
                         isOnDesktop: isOnDesktop,
+                        ocrHealth: ocrHealth,
                       ),
                       IgnorePointer(
                         ignoring: !_selectorActive,
@@ -331,6 +334,7 @@ class ReaderWidget extends StatelessWidget {
 
   final bool showIndicator;
   final bool isOnDesktop;
+  final bool ocrHealth;
 
   const ReaderWidget({
     super.key,
@@ -343,6 +347,7 @@ class ReaderWidget extends StatelessWidget {
     required this.currentIndex,
     required this.showIndicator,
     required this.isOnDesktop,
+    required this.ocrHealth,
   });
 
   @override
@@ -403,10 +408,11 @@ class ReaderWidget extends StatelessWidget {
         Align(
           alignment: .topRight,
           child: HoverWrapper(
-            minOpacity: 0.3,
+            maxOpacity: ocrHealth ? 1 : 0,
+            minOpacity: ocrHealth ? 0.3 : 0,
             //TODO: Better OCR button, maybe with icon even.
             child: ElevatedButton(
-              onPressed: activateSelector,
+              onPressed: ocrHealth ? activateSelector : null,
               child: Text("OCR", style: TextStyle(fontSize: 16)),
             ),
           ),
