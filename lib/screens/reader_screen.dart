@@ -1,33 +1,40 @@
 import 'dart:async';
 
-import 'package:archive/archive.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/health_providers/manga_ocr_health_provider.dart';
 import 'package:manga_reader/models/manga.dart';
+import 'package:manga_reader/providers/ocr_provider.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
+import 'package:manga_reader/services/platform/platform_service.dart';
 import 'package:manga_reader/widgets/hover_wrapper.dart';
+import 'package:manga_reader/widgets/rectangle_selector.dart';
+import 'package:manga_reader/services/image/selector_service.dart';
+import 'package:manga_reader/services/image/image_service.dart';
 
 /// Screen to display pages of a Manga object.
 class ReaderScreen extends ConsumerStatefulWidget {
-  const ReaderScreen({super.key});
+  const ReaderScreen({super.key, required this.openDrawer});
+  final VoidCallback openDrawer;
 
   @override
   ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
 }
 
 class _ReaderScreenState extends ConsumerState<ReaderScreen> {
-  late PageController _controller;
+  late PageController _pageController;
+  final List<TransformationController> _transformationControllers = [];
   final FocusNode _focusNode = FocusNode();
   bool _startingPageHandled = false;
   bool _showIndicator = false;
   Timer? _showIndicatorTimer;
+  bool _selectorActive = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = PageController();
+    _pageController = PageController();
     // TODO: Memorize latest page when user leaves reader while reading manga
 
     // Triggers when provider is updated
@@ -36,13 +43,25 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       if (_startingPageHandled) return;
 
       next.whenData((reader) {
-        // Waits until PageView exists
+        // do nothing if reader null
+        if (reader == null) return;
+
+        // Precache images
+        _precacheImageAround(reader.currentIndex);
+
+        // Waits until PageView exists for pageController jump
         WidgetsBinding.instance.addPostFrameCallback((_) {
           // Waits until controller has clients (PageView)
-          if (_controller.hasClients && reader != null) {
-            _controller.jumpToPage(reader.currentIndex);
-            _precacheImageAround(reader.currentIndex);
+          if (_pageController.hasClients) {
+            _pageController.jumpToPage(reader.currentIndex);
             _startingPageHandled = true;
+
+            //TODO Remove these test functions
+            // final page = reader.manga.pages.first;
+            // DesktopOcr().recognizeText(page.imageBytes).then((result) {
+            //   print("OCR TEST RESULT:");
+            //   print(result.text);
+            // });
           }
         });
       });
@@ -51,42 +70,23 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pageController.dispose();
     _focusNode.dispose();
     _showIndicatorTimer?.cancel();
+    for (TransformationController controller in _transformationControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final reader = ref.watch(readerProvider);
+    final ocrHealth = ref.watch(mangaOcrHealthProvider);
     return Focus(
       focusNode: _focusNode,
       autofocus: true,
-      onKeyEvent: (node, event) {
-        // Ignore if event isn't keydown
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-        // Ignore if provider is null
-        final ReaderState? readerState = reader.value;
-        if (readerState == null) return KeyEventResult.ignored;
-
-        // TODO: Setting for users to modify these
-        // Go Previous Page
-        if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
-            readerState.currentIndex > 0) {
-          _goToPageIndex(readerState.currentIndex - 1);
-          return KeyEventResult.handled;
-        }
-        // Go Next Page
-        if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-            readerState.currentIndex < readerState.manga.pageCount - 1) {
-          _goToPageIndex(readerState.currentIndex + 1);
-          return KeyEventResult.handled;
-        }
-
-        return KeyEventResult.ignored;
-      },
+      onKeyEvent: (node, event) => _onKeyEvent(node, event, reader),
       child: GestureDetector(
         onTap: () {
           _focusNode.requestFocus();
@@ -94,17 +94,92 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         child: Padding(
           padding: EdgeInsetsGeometry.all(16),
           child: reader.when(
-            data: (readerState) => readerState == null
-                ? Text("Reader State is Null") //TODO: Custom screen for null
-                : ReaderWidget(
-                    controller: _controller,
-                    onPageChange: _onPageChange,
-                    goToPageIndex: _goToPageIndex,
-                    manga: readerState.manga,
-                    currentIndex: readerState.currentIndex,
-                    showIndicator: _showIndicator,
-                    isOnDesktop: _isOnDesktop,
+            data: (readerState) {
+              // TODO: custom null screen
+              if (readerState == null) return Text("Reader State is Null");
+
+              // Populate TransformationControllers
+              final controllerCount = _transformationControllers.length;
+              final pageCount = readerState.manga.pageCount;
+              if (controllerCount < pageCount) {
+                _transformationControllers.addAll(
+                  List.generate(
+                    pageCount - controllerCount,
+                    (_) => TransformationController(),
                   ),
+                );
+              }
+
+              return LayoutBuilder(
+                builder: (builder, constraints) {
+                  return Stack(
+                    children: [
+                      ReaderWidget(
+                        pageController: _pageController,
+                        transformationControllers: _transformationControllers,
+                        onPageChange: _onPageChange,
+                        goToPageIndex: _goToPageIndex,
+                        activateSelector: () {
+                          setState(() {
+                            _selectorActive = true;
+                          });
+                        },
+                        manga: readerState.manga,
+                        currentIndex: readerState.currentIndex,
+                        showIndicator: _showIndicator,
+                        isOnDesktop: isOnDesktop,
+                        ocrHealth: ocrHealth,
+                      ),
+                      IgnorePointer(
+                        ignoring: !_selectorActive,
+                        child: RectangleSelector(
+                          isActive: _selectorActive,
+                          constraints: constraints,
+                          onSelectionFinished: (selectionRect) async {
+                            setState(() {
+                              _selectorActive = false;
+                            });
+
+                            final index = readerState.currentIndex;
+                            final imageSize = await _getImageSize(
+                              context,
+                              index,
+                            );
+                            final tfController =
+                                _transformationControllers[index];
+                            final widgetSize = Size(
+                              constraints.maxWidth,
+                              constraints.maxHeight,
+                            );
+
+                            final cropRect = SelectorService()
+                                .selectionRectToCropRect(
+                                  selectionRect: selectionRect,
+                                  tfController: tfController,
+                                  imageSize: imageSize,
+                                  widgetSize: widgetSize,
+                                );
+
+                            final cropBytes = ImageService().cropImage(
+                              imageBytes:
+                                  readerState.manga.pages[index].imageBytes,
+                              cropRect: cropRect,
+                            );
+
+                            ref
+                                .read(ocrProvider.notifier)
+                                .requestOcr(cropBytes);
+                            widget.openDrawer();
+                            //TODO: Maybe move all this somewhere
+                            //TODO: so it's not so bloated
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
             // TODO: Custom Loading Screen?
             loading: () => Center(child: CircularProgressIndicator()),
             // TODO: Custom error screen
@@ -115,6 +190,36 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
+  // Handles onKeyEvent of Focus(). Placed here to not bloat build().
+  KeyEventResult _onKeyEvent(
+    FocusNode node,
+    KeyEvent event,
+    AsyncValue<ReaderState?> reader,
+  ) {
+    // Ignore if event isn't keydown
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // Ignore if provider is null
+    final ReaderState? readerState = reader.value;
+    if (readerState == null) return KeyEventResult.ignored;
+
+    // TODO: Setting for users to modify these
+    // Go Previous Page
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+        readerState.currentIndex > 0) {
+      _goToPageIndex(readerState.currentIndex - 1);
+      return KeyEventResult.handled;
+    }
+    // Go Next Page
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+        readerState.currentIndex < readerState.manga.pageCount - 1) {
+      _goToPageIndex(readerState.currentIndex + 1);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
   // Moves the PageView to a target page index. This also calls _onPageChange()
   // so no need to call that again if navigating using this.
   void _goToPageIndex(int targetIndex) {
@@ -123,7 +228,7 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
         .isIndexWithinBounds(targetIndex);
     if (!indexValid) return;
 
-    _controller.animateToPage(
+    _pageController.animateToPage(
       targetIndex,
       duration: Duration(milliseconds: 333),
       curve: Curves.easeInOut,
@@ -161,40 +266,88 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       // Skip if [i] is below 0 or above max index
       if (i < 0 || i >= pages.length) continue;
       // Pre-cache image in index [i]
-      precacheImage(MemoryImage(pages[i].imageBytes), context);
+      precacheImage(pages[i].memoryImage, context);
     }
   }
 
-  // return true only if on native desktop apps. false if web or mobile.
-  bool get _isOnDesktop =>
-      !kIsWeb &&
-      switch (defaultTargetPlatform) {
-        .windows || .linux || .macOS => true,
-        .android || .fuchsia || .iOS => false,
-      };
+  // Returns a Size(width, height) if the image on the given index.
+  // Seems like a complex function for a simple functionality, but doing it
+  // this way ensures the function reuses the ImageCache and doesn't have to
+  // recreate the image just to know the size.
+  Future<Size> _getImageSize(BuildContext context, int index) async {
+    final reader = ref.read(readerProvider).value;
+    // throw Exception if reader is null because it's unlikely to happen and
+    // I don't want the return to be nullable just for this unlikely event
+    if (reader == null) throw Exception("getImageSize reader is null!");
+
+    // Reuse the MemoryImage stored in MangaPage
+    final ImageProvider provider = reader.manga.pages[index].memoryImage;
+
+    // Completer is used to manually fulfill Future since listener uses callback
+    final Completer<Size> completer = Completer<Size>();
+
+    // Retrieve the ImageStream from MemoryImage. As in fetch it from the cache
+    // or create the ImageCache if none is found.
+    final ImageStream imageStream = provider.resolve(
+      createLocalImageConfiguration(context),
+    );
+
+    // Listener that handles the ImageStream
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (ImageInfo imageInfo, bool _) {
+        // If listener has listened, just remove it to prevent memory leak.
+        // We do this because we only need to listen to it once.
+        imageStream.removeListener(listener);
+
+        // Retrieve size from ImageInfo
+        final Size imageSize = Size(
+          imageInfo.image.width.toDouble(),
+          imageInfo.image.height.toDouble(),
+        );
+        // This resolves Future<Size>
+        completer.complete(imageSize);
+      },
+      onError: (error, stackTrace) {
+        imageStream.removeListener(listener);
+        completer.completeError(error, stackTrace);
+      },
+    );
+
+    // Attach listener to imageStream
+    imageStream.addListener(listener);
+    // This returns the Future<Size>, which is handled with completer.
+    return completer.future;
+  }
 }
 
 /// Widget to show the Manga along with controller UI elements.
 class ReaderWidget extends StatelessWidget {
-  final PageController controller;
+  final PageController pageController;
+  final List<TransformationController> transformationControllers;
   final void Function(int) onPageChange;
   final void Function(int) goToPageIndex;
+  final void Function() activateSelector;
 
   final Manga manga;
   final int currentIndex;
 
   final bool showIndicator;
   final bool isOnDesktop;
+  final bool ocrHealth;
 
   const ReaderWidget({
     super.key,
-    required this.controller,
+    required this.pageController,
+    required this.transformationControllers,
     required this.onPageChange,
     required this.goToPageIndex,
+    required this.activateSelector,
     required this.manga,
     required this.currentIndex,
     required this.showIndicator,
     required this.isOnDesktop,
+    required this.ocrHealth,
   });
 
   @override
@@ -208,7 +361,7 @@ class ReaderWidget extends StatelessWidget {
             // desktop reader change from wide to narrow. The $manga.title
             // makes sure keys aren't reused when changing between books.
             key: PageStorageKey("reader_${manga.title}"),
-            controller: controller,
+            controller: pageController,
             onPageChanged: (index) {
               onPageChange(index);
             },
@@ -217,8 +370,9 @@ class ReaderWidget extends StatelessWidget {
             itemCount: manga.pageCount,
             itemBuilder: (context, index) {
               return InteractiveViewer(
+                transformationController: transformationControllers[index],
                 child: Image(
-                  image: MemoryImage(manga.pages[index].imageBytes),
+                  image: manga.pages[index].memoryImage,
                   fit: BoxFit.contain,
                   //TODO: allow user to choose between contain, fitH, fitW
                 ),
@@ -248,6 +402,18 @@ class ReaderWidget extends StatelessWidget {
             child: PageIndicator(
               currentIndex: currentIndex,
               pageCount: manga.pageCount,
+            ),
+          ),
+        ),
+        Align(
+          alignment: .topRight,
+          child: HoverWrapper(
+            maxOpacity: ocrHealth ? 1 : 0,
+            minOpacity: ocrHealth ? 0.3 : 0,
+            //TODO: Better OCR button, maybe with icon even.
+            child: ElevatedButton(
+              onPressed: ocrHealth ? activateSelector : null,
+              child: Text("OCR", style: TextStyle(fontSize: 16)),
             ),
           ),
         ),

@@ -1,58 +1,73 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:manga_reader/health_providers/manga_ocr_health_provider.dart';
+import 'package:manga_reader/providers/ocr_provider.dart';
 import 'package:manga_reader/providers/reader_provider.dart';
+import 'package:manga_reader/screens/ocr_screen.dart';
 import 'package:manga_reader/screens/reader_screen.dart';
+import 'package:manga_reader/services/platform/platform_service.dart';
 
+/// Widget that holds both ReaderScreen and OcrScreen.
+/// Layout depends on platform. If on desktop and wide then shows them
+/// side-by-side. If on desktop and narrow or if on mobile, show only
+/// ReaderScreen while OcrScreen is stored in an endDrawer.
 class ReaderLayoutScreen extends ConsumerWidget {
-  const ReaderLayoutScreen({super.key});
+  ReaderLayoutScreen({super.key});
+  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ReaderState? state = ref.read(readerProvider).value;
     final title = state == null ? "Reader Screen" : state.manga.title;
+    final ocrHealth = ref.watch(mangaOcrHealthProvider);
+    final ocrStatus = ref.watch(ocrProvider);
+
+    Widget setupOcrScreen(){
+      return ocrStatus.when(
+          data: (ocrState) => ocrState == null
+          ? Center(child: Text(
+            ocrHealth ? "Awaiting OCR" : "OCR Unavailable",
+            style: const TextStyle(fontWeight: .bold, fontSize: 30),
+          ))
+          : OcrScreen(),
+          error: (error, stacktrace) => Center(child:
+            Text(error.toString(), style: TextStyle(
+                fontWeight: .bold,
+                fontSize: 30,
+                color: Colors.red
+            ))),
+          loading: () => Center(child: CircularProgressIndicator())
+      );
+    }
+
+
+    Widget setupReaderScreen(bool isWideDesktop){
+      //TODO: move all the reader.when stuff in ReaderScreen to here
+      return ReaderScreen(openDrawer: (){
+        if (isWideDesktop) return;
+        scaffoldKey.currentState?.openEndDrawer();
+      });
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         // Considered widescreen if width > 900px
-        final isWideDesktop = _isOnDesktop && constraints.maxWidth > 900;
+        final isWideDesktop = isOnDesktop && constraints.maxWidth > 900;
 
         return Scaffold(
+          key: scaffoldKey,
           appBar: AppBar(title: Text(title)),
-          endDrawer: isWideDesktop ? null : OCRScreen(),
+          endDrawer: isWideDesktop ? null : setupOcrScreen(),
           body: isWideDesktop
               ? Row(
                   children: [
-                    Expanded(flex: 2, child: ReaderScreen()),
-                    Expanded(flex: 3, child: OCRScreen()),
+                    Expanded(flex: 2, child: setupReaderScreen(isWideDesktop)),
+                    Expanded(flex: 3, child: setupOcrScreen()),
                   ],
                 )
-              : ReaderScreen(),
+              : setupReaderScreen(isWideDesktop),
         );
       },
-    );
-  }
-
-  // return true only if on native desktop apps. false if web or mobile.
-  bool get _isOnDesktop =>
-      !kIsWeb &&
-      switch (defaultTargetPlatform) {
-        .windows || .linux || .macOS => true,
-        .android || .fuchsia || .iOS => false,
-      };
-}
-
-/// This is a placeholder to be placed where the OCR screen will be eventually
-class OCRScreen extends ConsumerWidget {
-  const OCRScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ColoredBox(
-      color: Colors.blue,
-      child: Center(
-        child: Text("I AM A PLACEHOLDER", style: TextStyle(color: Colors.red)),
-      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:manga_reader/screens/reader_layout_screen.dart';
 import 'package:manga_reader/screens/selector_screen.dart';
 
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   // TODO: Different cache size for Desktop and Android
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
       initialRoute: "/",
       routes: {
         "/": (context) => const SelectorScreen(),
-        "/reader": (context) => const ReaderLayoutScreen()
+        "/reader": (context) => ReaderLayoutScreen()
       },
     );
   }
